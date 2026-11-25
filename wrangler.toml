@@ -1,0 +1,16 @@
+name = "dusk"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# npx wrangler kv namespace create DUSK_DB  ->  paste the id below
+[[kv_namespaces]]
+binding = "DB"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# Optional
+# [vars]
+# RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
