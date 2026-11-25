@@ -8,6 +8,16 @@
 <meta name="theme-color" content="#0e0b22">
 <meta property="og:title" content="DUSK">
 <meta property="og:description" content="Spent in silence. Bound by proof.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://duskdot.fun/">
+<meta property="og:image" content="https://duskdot.fun/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@DuskAgents">
+<meta name="twitter:title" content="DUSK">
+<meta name="twitter:description" content="Private spending for AI agents on Robinhood Chain. Spent in silence. Bound by proof.">
+<meta name="twitter:image" content="https://duskdot.fun/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0b22'/%3E%3Cpath d='M32 6 L34 40 L32 60 L30 40 Z' fill='%23f1e7d8'/%3E%3Cpath d='M10 40 Q32 39 54 40 Q32 41 10 40Z' fill='%23f1e7d8'/%3E%3Cpath d='M18 40 A14 14 0 0 1 30 26.2 M34 26.2 A14 14 0 0 1 46 40' fill='none' stroke='%23ff7b42' stroke-width='2.4'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -183,6 +193,8 @@ h1 em,h2 em,h3 em{font-style:italic;color:var(--ember2)}
 .note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:20px;line-height:1.7}
 .msg{font-family:var(--mono);font-size:12.5px;margin-top:16px;min-height:1em}
 .msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+#index a.a1nav span{color:var(--ember2)}
+.btn.stopall{border-color:var(--bad);color:var(--bad)}.btn.stopall:hover{background:var(--bad);color:var(--night)}
 .insights{max-width:1400px;margin:18px auto 0;padding:22px 26px;text-align:left}
 .ihead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.ihead h3{font-family:var(--serif);font-weight:400;font-size:30px}.ihead h3 em{color:var(--ember2)}.ihead .spacer{flex:1}
 .itiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:22px}
@@ -310,6 +322,10 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
 
 /* ---- tiers / allowlist / anchors ---- */
 .allowrow{margin-top:26px}
+.v3row{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:12px 28px}.v3row .note{grid-column:1/-1;margin-top:0}
+@media(max-width:700px){.v3row{grid-template-columns:1fr}}
+.pend{margin-top:16px;border:1px solid var(--ember2);padding:14px 16px}.pend h4{font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ember2)}
+.prow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line);font-family:var(--mono);font-size:13px}.prow:first-of-type{border-top:0}.prow .pa{color:var(--ember2);min-width:70px}.prow .pd{flex:1;min-width:180px;color:var(--muted)}.prow .pt{color:var(--faint);font-size:11.5px}
 .allowrow .note{margin-top:8px}
 .chip.holder{color:var(--blue2);border-color:var(--blue2)}
 .tierline{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:6px}
@@ -334,7 +350,8 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
   :root{--pad:20px}
   .top{gap:10px;flex-wrap:wrap}
   .topca,.topconn{padding:0 10px;font-size:11px}
-  #ghLink,.topca{display:none!important}
+  #ghLink,#xLink{display:none!important}
+  .top .topca{padding:0 8px;font-size:10.5px;letter-spacing:.02em}
   .top{gap:8px}.top .xbtn{width:38px;height:38px}.topconn{height:38px;padding:0 8px;letter-spacing:.02em}.top .mark b{letter-spacing:.12em}.topconn{font-size:10.5px}
   .mark b{font-size:20px}
   .ca{order:5;flex-basis:100%;max-width:none;margin:0}
@@ -396,6 +413,7 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
   <a href="#token" data-p="token"><span>$DUSK</span><i></i></a>
   <a href="#proof" data-p="proof"><span>Proof</span><i></i></a>
   <a href="#agents" data-p="agents"><span>For agents</span><i></i></a>
+  <a href="/agent01" class="a1nav"><span>Agent 01 · live</span><i></i></a>
   <a href="#faq" data-p="faq"><span>Questions</span><i></i></a>
   <a href="#about" data-p="about"><span>About</span><i></i></a>
 </nav>
@@ -407,7 +425,7 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
       <p class="kick">Private spending for AI agents · Robinhood Chain</p>
       <h1><span class="ln"><span>Spent in silence.</span></span><span class="ln"><span><em>Bound by proof.</em></span></span></h1>
       <p class="lead">Draw your agent's limits once, with a signature. It spends inside them, call by call. Every payment is sealed, readable only by your wallet.</p>
-      <div class="row"><a class="btn sun" href="#vault">Draw a grant</a><a class="btn" href="#how">How it works</a></div>
+      <div class="row"><a class="btn sun" href="#vault">Draw a grant</a><a class="btn" href="#how">How it works</a><a class="btn" href="/agent01">Agent 01 live</a></div>
       <div class="cue" aria-hidden="true"><span>Scroll · the sun is setting</span><i></i></div>
     </div>
   </section>
@@ -450,6 +468,11 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
           <input id="fAllow" placeholder="api.vendor.dev, data.example.com" autocomplete="off">
           <p class="note">Your agent can only pay these sellers. DUSK enforces the list on every call without ever learning the names.</p>
         </div>
+        <div class="v3row">
+          <div><label for="fAsk">Ask me above · USDC · optional</label><input id="fAsk" inputmode="decimal" placeholder="e.g. 0.05" autocomplete="off"></div>
+          <div><label for="fSellerCap">Max per seller per day · USDC · optional</label><input id="fSellerCap" inputmode="decimal" placeholder="e.g. 2" autocomplete="off"></div>
+          <p class="note">Above the first amount, your agent waits for your yes in this vault before it pays. The second caps what any one seller can take in a day, without DUSK learning who the sellers are.</p>
+        </div>
         <div class="signwrap">
           <label>What your wallet signs</label>
           <pre id="sigPreview"></pre>
@@ -466,8 +489,8 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
         <p class="note">MetaMask, Rabby, Coinbase Wallet or any EVM browser wallet. Same address format as on Robinhood Chain.</p>
       </div>
       <div id="app" hidden style="text-align:left">
-        <div class="panel who"><span class="dot"></span><code id="whoAddr"></code><span id="tierLine" class="tierline"></span><span class="spacer"></span><button class="btn sm" id="refreshBtn" type="button">Refresh</button><button class="btn sm" id="discBtn" type="button">Disconnect</button></div>
-        <div class="panel insights" id="insights"><div class="ihead"><h3>Spending <em>insights</em></h3><span class="note" style="margin:0">Every ledger is opened in this browser only. DUSK never sees these numbers by seller.</span><span class="spacer"></span><button class="btn sm" id="insBtn" type="button">Open insights</button></div><div id="insBody"></div></div>
+        <div class="panel who"><span class="dot"></span><code id="whoAddr"></code><span id="tierLine" class="tierline"></span><span class="spacer"></span><button class="btn sm stopall" id="stopAll" type="button">Pause all agents</button><button class="btn sm" id="resumeAll" type="button">Resume all</button><button class="btn sm" id="refreshBtn" type="button">Refresh</button><button class="btn sm" id="discBtn" type="button">Disconnect</button></div>
+        <div class="panel insights" id="insights"><div class="ihead"><h3>Spending <em>insights</em></h3><span class="note" style="margin:0">Every ledger is opened in this browser only. DUSK never sees these numbers by seller.</span><span class="spacer"></span><button class="btn sm" id="csvBtn" type="button">Export CSV</button><button class="btn sm" id="insBtn" type="button">Open insights</button></div><div id="insBody"></div></div>
         <div class="grants" id="grants"></div>
       </div>
     </div>
@@ -561,6 +584,13 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
         <li class="rv"><span>HOLDERS</span>On-chain anchors. Pin your ledger's hash on Robinhood Chain. Once anchored, no one can rewrite your history, us included.</li>
       </ul>
       <p class="note rv" id="tierOpen" style="text-align:center;margin-top:30px">Until $DUSK is live, every vault gets the holder tier.</p>
+      <div class="tool" style="text-align:center">
+        <p class="kick b rv">Holder check</p>
+        <h3 class="h3 rv">Check a <em>wallet.</em></h3>
+        <p class="lead center rv" style="margin-top:20px">Paste any address. DUSK reads its $DUSK balance live on Robinhood Chain.</p>
+        <form class="proofin rv" id="holdForm" autocomplete="off"><input id="holdIn" placeholder="0x… wallet address" maxlength="42" spellcheck="false" required><button class="btn sun" type="submit">Check</button></form>
+        <div id="holdOut" style="text-align:left"></div>
+      </div>
     </div>
   </section>
 
@@ -824,6 +854,8 @@ const LOGIN_MSG = (a, issued, nonce) => `DUSK sign-in\n\nAddress: ${a}\nIssued: 
 function grantMessage(g) {
   const lines = ['DUSK grant', `Grant: ${g.id}`, `Owner: ${g.owner}`, `Budget: ${g.budget} USDC`, `Per call: ${g.perCall} USDC`, `Daily: ${g.daily} USDC`];
   if (g.allowHash) lines.push(`Allowlist: ${g.allowHash}`);
+  if (g.approveAbove) lines.push(`Ask owner above: ${g.approveAbove} USDC`);
+  if (g.sellerDaily) lines.push(`Per seller daily: ${g.sellerDaily} USDC`);
   lines.push(`Expires: ${g.expires}`, `Issued: ${g.issued}`);
   return lines.join('\n');
 }
@@ -914,6 +946,16 @@ async function render(grants) {
   const box = $('#grants');
   if (!grants.length) { box.innerHTML = '<div class="panel grant"><h3>No grants yet</h3><p class="note" style="margin-top:10px">Draw and sign your first grant above. You will get an agent key to paste into your agent.</p></div>'; return; }
   const names = await Promise.all(grants.map(async g => { try { return dec.decode(await unseal(S.key, g.encName)); } catch { return 'Sealed grant'; } }));
+  const pend = await Promise.all(grants.map(async g => {
+    if (!g.pending || !g.pending.length) return '';
+    let key = null; try { key = await grantKey(g); } catch {}
+    const rows = await Promise.all(g.pending.map(async x => {
+      let d = {}; try { d = JSON.parse(dec.decode(await unseal(key, x.sealed))); } catch {}
+      const left = Math.max(0, Math.round((Date.parse(x.exp) - Date.now()) / 60000));
+      return `<div class="prow"><span class="pa">${esc(x.amount)} USDC</span><span class="pd">${esc(d.seller || 'sealed seller')}${d.request ? ' · ' + esc(d.request) : ''}</span><span class="pt">${left} min left</span><button class="btn sm sun" type="button" data-a="approve" data-r="${esc(x.id)}">Approve</button><button class="btn sm" type="button" data-a="decline" data-r="${esc(x.id)}">Decline</button></div>`;
+    }));
+    return `<div class="pend"><h4>Waiting for your yes</h4>${rows.join('')}</div>`;
+  }));
   const allows = await Promise.all(grants.map(async g => { if (!g.encAllow) return null; try { return JSON.parse(dec.decode(await unseal(S.key, g.encAllow))); } catch { return ['sealed']; } }));
   box.innerHTML = grants.map((g, i) => {
     const st = statusOf(g), pct = Math.min(100, (toMicro(g.spent) / toMicro(g.budget)) * 100 || 0);
@@ -930,11 +972,14 @@ async function render(grants) {
         <button class="btn sm" data-a="ledger" type="button">${S.open[g.id] ? 'Hide ledger' : 'Open ledger'} (${g.count})</button>
         ${st === 'active' ? '<button class="btn sm" data-a="paused" type="button">Pause</button>' : ''}
         ${st === 'paused' ? '<button class="btn sm" data-a="active" type="button">Resume</button>' : ''}
+        ${g.status !== 'revoked' ? '<button class="btn sm" data-a="rotate" type="button">New key</button>' : ''}
         ${g.status !== 'revoked' ? '<button class="btn sm" data-a="revoked" type="button">Revoke</button>' : ''}
         <a class="btn sm" href="#proof/${esc(g.id)}">Proof</a>
         <button class="btn sm" data-a="copyid" type="button">Copy id</button>
         <button class="btn sm blue" data-a="anchor" type="button">Anchor on Robinhood Chain</button>
       </div>
+      ${g.approveAbove || g.sellerDaily ? `<p class="gline">${g.approveAbove ? `<span class="chip paused">asks you above ${esc(g.approveAbove)}</span>` : ''}${g.sellerDaily ? `<span class="chip holder">max ${esc(g.sellerDaily)} per seller a day</span>` : ''}</p>` : ''}
+      ${pend[i]}
       ${allows[i] ? `<p class="gline"><span class="chip holder">private allowlist</span>${allows[i].map(esc).join(' · ')}</p>` : ''}
       ${(g.anchors || []).length ? `<p class="gline"><span class="chip holder">anchored</span>#${g.anchors[0].count} · <a href="${EXPLORER}${esc(g.anchors[0].tx)}" target="_blank" rel="noopener">${esc(g.anchors[0].tx.slice(0, 12))}…</a>${g.anchors.length > 1 ? ` · ${g.anchors.length} anchors` : ''}</p>` : ''}
       <div class="ledgerwrap"></div>
@@ -989,6 +1034,80 @@ async function insights() {
       ${per.some(p => p.partial) ? '<p class="note" style="margin-top:12px">Busy agents: based on their latest 300 payments.</p>' : ''}`;
   } catch (e) { body.innerHTML = `<p class="msg bad">${esc(walletError(e))}</p>`; }
 }
+/* ---------- CSV export (decrypted locally) ---------- */
+async function exportCSV() {
+  const b = $('#csvBtn'); if (!S.grants || !S.grants.length) { toast('No grants yet'); return; }
+  b.disabled = true; const label = b.textContent; b.textContent = 'Preparing…';
+  try {
+    const cell = v => { let t = String(v ?? ''); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+    const lines = [['agent', 'grant', 'n', 'time_utc', 'usdc', 'seller', 'request', 'note', 'hash'].join(',')];
+    for (const g of S.grants) {
+      if (!g.count) continue;
+      let name = 'Sealed grant'; try { name = dec.decode(await unseal(S.key, g.encName)); } catch {}
+      const [l, key] = await Promise.all([api(`/api/grants/${g.id}/ledger`, { headers: { authorization: 'Bearer ' + S.token } }), grantKey(g)]);
+      for (const e of [...l.entries].sort((x, y) => x.n - y.n)) {
+        let d = {}; try { d = JSON.parse(dec.decode(await unseal(key, e.sealed))); } catch {}
+        lines.push([name, g.id, e.n, timeUTC(e.t), e.amount, d.seller || '', d.request || '', d.note || '', e.hash].map(cell).join(','));
+      }
+    }
+    if (lines.length === 1) { toast('No payments yet'); return; }
+    const url = URL.createObjectURL(new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = `dusk-ledger-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast(`${lines.length - 1} payments exported`);
+  } catch (e) { toast(walletError(e)); }
+  finally { b.disabled = false; b.textContent = label; }
+}
+$('#csvBtn').addEventListener('click', exportCSV);
+setInterval(() => { if (S.token && S.grants && S.grants.some(g => g.pending && g.pending.length) && !document.hidden) refresh(); }, 15000);
+/* ---------- new agent key ---------- */
+async function rotateKey(id, b) {
+  const g = S.grants.find(x => x.id === id); if (!g) return;
+  if (!confirm('Make a new agent key for this grant? The current key stops working right away. Limits and ledger stay the same.')) return;
+  b.disabled = true;
+  try {
+    const token = b64url(rand(24));
+    const sk = await unseal(S.key, g.wrappedKey);
+    await api(`/api/grants/${id}/rotate`, { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify({ tokenHash: await sha256hex(token) }) });
+    const agentKey = `${id}.${token}.${b64url(sk)}`;
+    let name = 'this agent'; try { name = dec.decode(await unseal(S.key, g.encName)); } catch {}
+    await refresh();
+    const card = document.querySelector(`.grant[data-id="${CSS.escape(id)}"]`);
+    if (card) {
+      card.insertAdjacentHTML('beforeend', `<div class="keybox" style="margin-top:18px"><p>New agent key for ${esc(name)}. The old key no longer works. Shown once: update your agent now.</p><code>${esc(agentKey)}</code><button class="btn sm sun" type="button">Copy key</button></div>`);
+      card.querySelector('.keybox:last-child button').onclick = () => copy(agentKey);
+    }
+    toast('New key ready. Old key disabled.');
+  } catch (e) { if (e.status === 401) { await disconnect(); setMsg($('#gateMsg'), 'Session expired. Connect again.', 'bad'); } else toast(walletError(e)); b.disabled = false; }
+}
+/* ---------- emergency stop ---------- */
+async function bulkStatus(status) {
+  if (status === 'paused' && !confirm('Pause every agent now? All their payments are refused until you resume.')) return;
+  const btns = [$('#stopAll'), $('#resumeAll')]; btns.forEach(x => x.disabled = true);
+  try {
+    const r = await api('/api/vault/status', { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify({ status }) });
+    toast(status === 'paused' ? (r.changed ? `${r.changed} agent${r.changed > 1 ? 's' : ''} paused` : 'No active agent to pause') : (r.changed ? `${r.changed} agent${r.changed > 1 ? 's' : ''} resumed` : 'No paused agent to resume'));
+    await refresh();
+  } catch (e) { if (e.status === 401) { await disconnect(); setMsg($('#gateMsg'), 'Session expired. Connect again.', 'bad'); } else toast(walletError(e)); }
+  finally { btns.forEach(x => x.disabled = false); }
+}
+$('#stopAll').addEventListener('click', () => bulkStatus('paused'));
+$('#resumeAll').addEventListener('click', () => bulkStatus('active'));
+/* ---------- holder check ---------- */
+$('#holdForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const out = $('#holdOut'), a = $('#holdIn').value.trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { out.innerHTML = '<div class="panel result"><p class="msg bad">That is not a wallet address.</p></div>'; return; }
+  out.innerHTML = '<div class="panel result"><p class="note" style="margin:0">Reading the balance on Robinhood Chain…</p></div>';
+  try {
+    const t = await api('/api/tier?address=' + encodeURIComponent(a));
+    const min = Number(t.min).toLocaleString('en-US');
+    const head = !t.gated ? '<span class="chip holder">holder tier</span>' : t.holder ? '<span class="chip holder">$DUSK holder</span>' : '<span class="chip paused">free vault</span>';
+    const bal = t.balance === null ? 'not live yet' : Number(t.balance).toLocaleString('en-US') + ' $DUSK';
+    out.innerHTML = `<div class="panel result"><div class="ghead"><h3>${esc(a.slice(0, 6) + '…' + a.slice(-4))}</h3>${head}</div>
+      <div class="gmeta"><div><b>${esc(bal)}</b>balance</div><div><b>${t.grants}</b>active grants</div><div><b>${esc(min)}</b>$DUSK for holder</div><div><b>${t.holder ? 'yes' : 'no'}</b>allowlists and anchors</div></div></div>`;
+  } catch (err) { out.innerHTML = `<div class="panel result"><p class="msg bad">${esc(walletError(err))}</p></div>`; }
+});
 $('#insBtn').addEventListener('click', () => { const b = $('#insBtn'), open = b.dataset.open === '1'; if (open) { b.dataset.open = '0'; b.textContent = 'Open insights'; $('#insBody').innerHTML = ''; } else { b.dataset.open = '1'; b.textContent = 'Hide insights'; insights(); } });
 $('#grants').addEventListener('click', async ev => {
   const b = ev.target.closest('button[data-a]'); if (!b) return;
@@ -996,6 +1115,13 @@ $('#grants').addEventListener('click', async ev => {
   if (a === 'copyid') return copy(id);
   if (a === 'anchor') return anchor(S.grants.find(g => g.id === id), b);
   if (a === 'ledger') { S.open[id] = !S.open[id]; b.textContent = (S.open[id] ? 'Hide ledger' : 'Open ledger') + ` (${S.grants.find(g => g.id === id).count})`; if (S.open[id]) loadLedger(id); else b.closest('.grant').querySelector('.ledgerwrap').innerHTML = ''; return; }
+  if (a === 'rotate') return rotateKey(id, b);
+  if (a === 'approve' || a === 'decline') {
+    b.disabled = true;
+    try { await api(`/api/grants/${id}/requests/${b.dataset.r}`, { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify({ decision: a }) }); toast(a === 'approve' ? 'Approved. Your agent can pay.' : 'Declined.'); }
+    catch (e) { toast(walletError(e)); }
+    return refresh();
+  }
   if (a === 'revoked' && !confirm('Revoke this grant? The agent key stops working on its next call. This cannot be undone.')) return;
   b.disabled = true;
   try { await api(`/api/grants/${id}/status`, { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify({ status: a }) }); toast(a === 'revoked' ? 'Grant revoked' : a === 'paused' ? 'Grant paused' : 'Grant resumed'); await refresh(); }
@@ -1031,6 +1157,9 @@ $('#grantForm').addEventListener('submit', async ev => {
     const id = b64url(rand(15)), token = b64url(rand(24)), sk = rand(32);
     const now = Date.now();
     const g = { id, owner: S.addr, budget: fromMicro(bm), perCall: fromMicro(cm), daily: fromMicro(dm), expires: new Date(now + Number($('#fExp').value) * 86400000).toISOString(), issued: new Date(now).toISOString() };
+    const askRaw = $('#fAsk').value.trim(), capRaw = $('#fSellerCap').value.trim();
+    if (askRaw) { const v = toMicro(askRaw); if (!v) throw new Error('Ask-above: write an amount like 0.05'); if (v >= cm) throw new Error('Ask-above must be below the max per call'); g.approveAbove = fromMicro(v); }
+    if (capRaw) { const v = toMicro(capRaw); if (!v) throw new Error('Per-seller cap: write an amount like 2'); if (v > dm) throw new Error('Per-seller cap must be at most the max per day'); g.sellerDaily = fromMicro(v); }
     const hosts = parseAllow();
     if ($('#fAllow').value.trim() && !hosts.length) throw new Error('Allowlist: write seller domains, like api.vendor.dev');
     if (hosts.length > 32) throw new Error('Allowlist: up to 32 sellers');
@@ -1048,7 +1177,7 @@ $('#grantForm').addEventListener('submit', async ev => {
     setMsg(m, 'Grant signed.', 'ok');
     $('#newKey').innerHTML = `<div class="keybox"><p>Agent key for ${esc(name)}. Shown once: store it in your agent's secrets now.</p><code id="akey">${esc(agentKey)}</code><button class="btn sm sun" type="button" id="akeyCopy">Copy key</button></div>`;
     $('#akeyCopy').onclick = () => copy(agentKey);
-    $('#fName').value = ''; $('#fAllow').value = '';
+    $('#fName').value = ''; $('#fAllow').value = ''; $('#fAsk').value = ''; $('#fSellerCap').value = '';
     await refresh();
   } catch (e) {
     if (e.status === 401) { await disconnect(); setMsg($('#gateMsg'), 'Session expired. Connect again.', 'bad'); }
@@ -1099,7 +1228,7 @@ function compose() {
   const exp = new Date(Date.now() + days * 86400000);
   $('#dExp').textContent = exp.toISOString().slice(0, 10);
   const al = parseAllow().length;
-  $('#sigPreview').textContent = grantMessage({ allowHash: al ? `(commitment to ${al} sealed seller${al > 1 ? 's' : ''}, computed when you sign)` : '', id: '(created when you sign)', owner: S.addr || '(your wallet)', budget: b ? fromMicro(b) : '?', perCall: c ? fromMicro(c) : '?', daily: d ? fromMicro(d) : '?', expires: exp.toISOString().slice(0, 10) + ' (exact time set when you sign)', issued: '(time of signing)' });
+  $('#sigPreview').textContent = grantMessage({ allowHash: al ? `(commitment to ${al} sealed seller${al > 1 ? 's' : ''}, computed when you sign)` : '', id: '(created when you sign)', owner: S.addr || '(your wallet)', budget: b ? fromMicro(b) : '?', perCall: c ? fromMicro(c) : '?', daily: d ? fromMicro(d) : '?', approveAbove: toMicro($('#fAsk').value) ? fromMicro(toMicro($('#fAsk').value)) : '', sellerDaily: toMicro($('#fSellerCap').value) ? fromMicro(toMicro($('#fSellerCap').value)) : '', expires: exp.toISOString().slice(0, 10) + ' (exact time set when you sign)', issued: '(time of signing)' });
   $('#grantBtn').textContent = S.token ? 'Sign grant' : 'Connect & sign';
 }
 AMTS.forEach(id => {
@@ -1114,6 +1243,7 @@ AMTS.forEach(id => {
 });
 $('#fExp').addEventListener('change', compose);
 $('#fAllow').addEventListener('input', compose);
+$('#fAsk').addEventListener('input', compose); $('#fSellerCap').addEventListener('input', compose);
 AMTS.forEach(toRange); compose();
 
 /* ---------- agent key check ---------- */
@@ -1142,8 +1272,8 @@ $('#keyForm').addEventListener('submit', async e => {
         let tag = '';
         if (seller && sk) { const k = await crypto.subtle.importKey('raw', unb64(sk), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); tag = Array.from(new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(hostOf(seller)))), x => x.toString(16).padStart(2, '0')).join(''); }
         const t = await api('/api/check', { method: 'POST', headers: { authorization: 'Bearer ' + parts[0] + '.' + parts[1] }, body: JSON.stringify({ amount, tag }) });
-        m.className = 'msg ok'; m.textContent = `Approved. Your agent could pay ${t.amount} USDC now. ${t.remainingToday} USDC left today.`;
-      } catch (e2) { m.className = 'msg bad'; m.textContent = 'Refused. ' + (e2.status === 401 ? 'This key is not valid.' : (e2.message || 'Try again.')) + (r.allowlist && !sk ? ' Paste the full key to test an allowlisted seller.' : ''); }
+        m.style.color = ''; m.className = 'msg ok'; m.textContent = `Approved. Your agent could pay ${t.amount} USDC now. ${t.remainingToday} USDC left today.`;
+      } catch (e2) { if (e2.status === 202) { m.className = 'msg'; m.style.color = 'var(--ember2)'; m.textContent = 'Needs your approval. ' + e2.message; return; } m.style.color = ''; m.className = 'msg bad'; m.textContent = 'Refused. ' + (e2.status === 401 ? 'This key is not valid.' : (e2.message || 'Try again.')) + (r.allowlist && !sk ? ' Paste the full key to test an allowlisted seller.' : ''); }
     });
   } catch (err) { out.innerHTML = `<div class="panel result"><p class="msg bad">${esc(err.status === 401 ? 'This key is not valid.' : walletError(err))}</p></div>`; }
 });

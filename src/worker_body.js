@@ -55,6 +55,8 @@ function grantMessage(g) {
     `Daily: ${g.daily} USDC`,
   ];
   if (g.allowHash) lines.push(`Allowlist: ${g.allowHash}`);
+  if (g.approveAbove) lines.push(`Ask owner above: ${g.approveAbove} USDC`);
+  if (g.sellerDaily) lines.push(`Per seller daily: ${g.sellerDaily} USDC`);
   lines.push(`Expires: ${g.expires}`, `Issued: ${g.issued}`);
   return lines.join('\n');
 }
@@ -157,6 +159,7 @@ function publicGrant(g) {
     expires: g.expires, issued: g.issued, signature: g.signature, status: g.status,
     count: g.count, head: g.head,
     allowHash: g.allowHash || '', allowCount: (g.allow || []).length, anchors: g.anchors || [],
+    approveAbove: g.approveAbove || '', sellerDaily: g.sellerDaily || '',
   };
 }
 function ownerGrant(g) {
@@ -168,6 +171,7 @@ function ownerGrant(g) {
     remaining: fromMicro(Math.max(0, toMicro(g.budget) - g.spentMicro)),
     spentToday: fromMicro(g.day === today ? g.daySpentMicro : 0),
     lastAt: g.lastAt || null,
+    pending: (g.pending || []).filter(x => x.status === 'pending' && Date.parse(x.exp) > Date.now()).map(x => ({ id: x.id, t: x.t, amount: x.amount, sealed: x.sealed, exp: x.exp })),
   };
 }
 
@@ -175,6 +179,58 @@ async function readBody(req, max = 16384) {
   const t = await req.text();
   if (t.length > max) throw Object.assign(new Error('Request too large'), { status: 413 });
   try { return JSON.parse(t) || {}; } catch { throw Object.assign(new Error('Invalid JSON'), { status: 400 }); }
+}
+
+/* ---------- V3: limits, per-seller caps, owner approvals ---------- */
+const sellerSpentToday = (g, tag) => (g.sellerDay && g.sellerDay.day === dayKey(Date.now()) ? (g.sellerDay.spent[tag] || 0) : 0);
+function limitError(g, amt, tag, now) {
+  const today = dayKey(now), daySpent = g.day === today ? g.daySpentMicro : 0;
+  if (g.status !== 'active') return [`Grant is ${g.status}`, 403];
+  if (Date.parse(g.expires) <= now) return ['Grant expired', 403];
+  if (g.allow && g.allow.length && !g.allow.includes(tag)) return ["Seller is not on this grant's private allowlist", 403];
+  if (amt > toMicro(g.perCall)) return [`Over per-call limit (${g.perCall} USDC)`, 402];
+  if (g.sellerDaily) {
+    if (!tag) return ['This grant caps each seller: send the seller tag', 400];
+    if (sellerSpentToday(g, tag) + amt > toMicro(g.sellerDaily)) return [`Over per-seller daily limit (${g.sellerDaily} USDC)`, 402];
+  }
+  if (daySpent + amt > toMicro(g.daily)) return [`Over daily limit (${g.daily} USDC)`, 402];
+  if (g.spentMicro + amt > toMicro(g.budget)) return [`Over budget (${fromMicro(Math.max(0, toMicro(g.budget) - g.spentMicro))} USDC left)`, 402];
+  return null;
+}
+async function recordPayment(env, g, amt, sealed, tag, now) {
+  const today = dayKey(now), daySpent = g.day === today ? g.daySpentMicro : 0;
+  const n = g.count + 1, ts = new Date(now).toISOString(), amount = fromMicro(amt);
+  const hash = await sha256hex(`${g.head}|${n}|${ts}|${amount}|${sealed}`);
+  const entry = { n, t: ts, amount, sealed, prev: g.head, hash };
+  const pageKey = `l:${g.id}:${Math.floor((n - 1) / PAGE)}`;
+  const page = await getJSON(env, pageKey, []);
+  page.push(entry);
+  await putJSON(env, pageKey, page);
+  if (g.sellerDaily && tag) {
+    if (!g.sellerDay || g.sellerDay.day !== today) g.sellerDay = { day: today, spent: {} };
+    if (Object.keys(g.sellerDay.spent).length < 300 || g.sellerDay.spent[tag]) g.sellerDay.spent[tag] = (g.sellerDay.spent[tag] || 0) + amt;
+  }
+  g.count = n; g.head = hash; g.spentMicro += amt; g.day = today; g.daySpentMicro = daySpent + amt; g.lastAt = ts;
+  await putJSON(env, `g:${g.id}`, g);
+  if (!g.demo) {
+    await bumpStats(env, { payments: 1, volume: amt });
+    await pushFeed(env, { t: ts, k: 'pay' });
+  }
+  return { grant: g.id, n, t: ts, amount, prev: entry.prev, hash };
+}
+async function decideRequest(env, g, rid, decision, now) {
+  const it = (g.pending || []).find(x => x.id === rid);
+  if (!it) return [{ ok: false, error: 'No such request' }, 404];
+  if (it.status !== 'pending') return [{ ok: false, error: `Request already ${it.status}` }, 400];
+  if (Date.parse(it.exp) <= now) { it.status = 'expired'; await putJSON(env, `g:${g.id}`, g); return [{ ok: false, error: 'Request expired' }, 400]; }
+  if (decision === 'decline') { it.status = 'declined'; it.reason = 'Declined by the owner'; await putJSON(env, `g:${g.id}`, g); return [{ ok: true, status: 'declined' }, 200]; }
+  const amt = toMicro(it.amount), le = limitError(g, amt, it.tag, now);
+  if (le) { it.status = 'declined'; it.reason = le[0]; await putJSON(env, `g:${g.id}`, g); return [{ ok: false, error: le[0] }, le[1]]; }
+  it.status = 'approved';
+  const receipt = await recordPayment(env, g, amt, it.sealed, it.tag, now);
+  it.receipt = receipt; delete it.sealed;
+  await putJSON(env, `g:${g.id}`, g);
+  return [{ ok: true, status: 'approved', receipt }, 200];
 }
 
 async function api(req, env, url) {
@@ -189,15 +245,20 @@ async function api(req, env, url) {
     return json({ ok: true, feed: await getJSON(env, 'feed', []) });
   }
   if (p === '/api/health' && m === 'GET') {
-    const qa = (url.searchParams.get('addr') || '').toLowerCase();
-    if (/^0x[0-9a-f]{40}$/.test(qa)) { try { return json({ ok: true, tier: await tierOf(env, qa) }); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
     try { const b = await rpc(env, 'eth_blockNumber', []); return json({ ok: true, rpc: true, block: parseInt(b, 16) }); }
     catch (e) { return json({ ok: true, rpc: false, error: String(e && e.message || e) }); }
   }
   if (p === '/api/tier' && m === 'GET') {
+    const qa = (url.searchParams.get('address') || '').trim().toLowerCase();
+    if (qa) {
+      if (!/^0x[0-9a-f]{40}$/.test(qa)) return err('That is not a wallet address');
+      let t; try { t = await tierOf(env, qa); } catch { return err('Could not read this balance on Robinhood Chain. Try again.', 503); }
+      return json({ ok: true, address: qa, gated: t.gated, holder: t.holder, min: t.min, balance: t.balance, grants: t.grants }, 200, CORS);
+    }
     const { ca, min } = await tierInfo(env);
     return json({ ok: true, gated: !!ca, min, freeGrants: FREE_GRANTS, holderGrants: HOLDER_GRANTS });
   }
+  if (p === '/api/agent01' && m === 'GET') return a1Public(env);
   if (p === '/api/ca' && m === 'GET') {
     return json({ ok: true, ca: (await env.DB.get('ca')) || '' });
   }
@@ -281,6 +342,8 @@ async function api(req, env, url) {
     if (String(g.allowHash || '') !== allowHash) return err('Allowlist commitment does not match');
     const clean = { id: g.id, owner: addr, budget: fromMicro(budget), perCall: fromMicro(perCall), daily: fromMicro(daily), expires: g.expires, issued: g.issued };
     if (allowHash) clean.allowHash = allowHash;
+    if (g.approveAbove) { const v = toMicro(g.approveAbove); if (!v || v >= perCall) return err('Ask-above must be below the per-call limit'); clean.approveAbove = fromMicro(v); if (clean.approveAbove !== g.approveAbove) return err('Amounts must be written in canonical form'); }
+    if (g.sellerDaily) { const v = toMicro(g.sellerDaily); if (!v || v > daily) return err('Per-seller cap must be at most the daily limit'); clean.sellerDaily = fromMicro(v); if (clean.sellerDaily !== g.sellerDaily) return err('Amounts must be written in canonical form'); }
     if (clean.budget !== g.budget || clean.perCall !== g.perCall || clean.daily !== g.daily) return err('Amounts must be written in canonical form');
     let signer;
     try { signer = DUSK_ECC.recoverAddress(grantMessage(clean), String(b.signature || '')); }
@@ -308,6 +371,51 @@ async function api(req, env, url) {
   }
 
   let mm;
+  // Emergency stop: pause (or resume) every grant of this vault at once.
+  if (p === '/api/vault/status' && m === 'POST') {
+    const addr = await sessionAddress(req, env);
+    if (!addr) return err('Session expired. Unlock again.', 401);
+    const b = await readBody(req);
+    const to = String(b.status || ''), from = to === 'paused' ? 'active' : to === 'active' ? 'paused' : '';
+    if (!from) return err('Invalid status');
+    const o = await getJSON(env, `o:${addr}`, { grants: [] });
+    let changed = 0;
+    for (const id of o.grants) {
+      const g = await getJSON(env, `g:${id}`);
+      if (!g || g.owner !== addr || g.status !== from) continue;
+      g.status = to; await putJSON(env, `g:${g.id}`, g); changed++;
+    }
+    return json({ ok: true, changed, status: to });
+  }
+
+  // Owner approves or declines a payment waiting above the ask-above amount.
+  if ((mm = p.match(/^\/api\/grants\/([A-Za-z0-9_-]{16,32})\/requests\/([A-Za-z0-9_-]{8,32})$/)) && m === 'POST') {
+    const addr = await sessionAddress(req, env);
+    if (!addr) return err('Session expired. Unlock again.', 401);
+    const g = await getJSON(env, `g:${mm[1]}`);
+    if (!g || g.owner !== addr) return err('Grant not found', 404);
+    const b = await readBody(req);
+    const d = String(b.decision || '');
+    if (!['approve', 'decline'].includes(d)) return err('Invalid decision');
+    const [res, code] = await decideRequest(env, g, mm[2], d, Date.now());
+    return json(res, code);
+  }
+
+  // New agent key: same grant, same limits and ledger. The old key stops working at once.
+  if ((mm = p.match(/^\/api\/grants\/([A-Za-z0-9_-]{16,32})\/rotate$/)) && m === 'POST') {
+    const addr = await sessionAddress(req, env);
+    if (!addr) return err('Session expired. Unlock again.', 401);
+    const g = await getJSON(env, `g:${mm[1]}`);
+    if (!g || g.owner !== addr) return err('Grant not found', 404);
+    if (g.status === 'revoked') return err('A revoked grant cannot get a new key');
+    const b = await readBody(req);
+    if (!/^[0-9a-f]{64}$/.test(String(b.tokenHash || ''))) return err('Invalid key hash');
+    if (b.tokenHash === g.tokenHash) return err('This is the current key');
+    g.tokenHash = b.tokenHash; g.rotatedAt = new Date().toISOString(); g.rotations = (g.rotations || 0) + 1;
+    await putJSON(env, `g:${g.id}`, g);
+    return json({ ok: true, grant: ownerGrant(g) });
+  }
+
   if ((mm = p.match(/^\/api\/grants\/([A-Za-z0-9_-]{16,32})\/status$/)) && m === 'POST') {
     const addr = await sessionAddress(req, env);
     if (!addr) return err('Session expired. Unlock again.', 401);
@@ -367,7 +475,7 @@ async function api(req, env, url) {
   }
 
   // Agent endpoints
-  if (p === '/api/agent' || p === '/api/spend' || p === '/api/check') {
+  if (p === '/api/agent' || p === '/api/spend' || p === '/api/check' || p.startsWith('/api/spend/')) {
     const h = req.headers.get('authorization') || '';
     const t = h.startsWith('Bearer ') ? h.slice(7).trim() : '';
     const parts = t.split('.');
@@ -383,6 +491,7 @@ async function api(req, env, url) {
       spent: fromMicro(g.spentMicro), remaining: fromMicro(Math.max(0, budget - g.spentMicro)),
       remainingToday: fromMicro(Math.max(0, daily - (g.day === dayKey(Date.now()) ? g.daySpentMicro : 0))),
       allowlist: (g.allow || []).length,
+      approveAbove: g.approveAbove || null, sellerDaily: g.sellerDaily || null,
     });
 
     if (p === '/api/agent' && m === 'GET') return json({ ok: true, ...view() }, 200, CORS);
@@ -395,12 +504,9 @@ async function api(req, env, url) {
       if (!amt) return err('amount must be a positive USDC string, e.g. "0.0025"');
       const tag = b.tag === undefined || b.tag === null ? '' : String(b.tag);
       if (tag && !/^[0-9a-f]{64}$/.test(tag)) return err('tag must be 64 hex characters');
-      if (g.status !== 'active') return err(`Grant is ${g.status}`, 403);
-      if (Date.parse(g.expires) <= now) return err('Grant expired', 403);
-      if (g.allow && g.allow.length && !g.allow.includes(tag)) return err("Seller is not on this grant's private allowlist", 403);
-      if (amt > perCall) return err(`Over per-call limit (${g.perCall} USDC)`, 402);
-      if (daySpent + amt > daily) return err(`Over daily limit (${g.daily} USDC)`, 402);
-      if (g.spentMicro + amt > budget) return err(`Over budget (${fromMicro(Math.max(0, budget - g.spentMicro))} USDC left)`, 402);
+      const le = limitError(g, amt, tag, now);
+      if (le) return err(le[0], le[1]);
+      if (g.approveAbove && amt > toMicro(g.approveAbove)) return json({ ok: false, pending: true, error: `Needs the owner's approval (above ${g.approveAbove} USDC)` }, 202, CORS);
       return json({ ok: true, pass: true, amount: fromMicro(amt), ...view() }, 200, CORS);
     }
     if (p === '/api/spend' && m === 'POST') {
@@ -411,29 +517,136 @@ async function api(req, env, url) {
       if (!isB64(b.sealed, 8000)) return err('sealed must be base64 ciphertext (max 8 KB)');
       const tag = b.tag === undefined || b.tag === null ? '' : String(b.tag);
       if (tag && !/^[0-9a-f]{64}$/.test(tag)) return err('tag must be 64 hex characters');
-      if (g.status !== 'active') return err(`Grant is ${g.status}`, 403);
-      if (Date.parse(g.expires) <= now) return err('Grant expired', 403);
-      if (g.allow && g.allow.length && !g.allow.includes(tag)) return err("Seller is not on this grant's private allowlist", 403);
-      if (amt > perCall) return err(`Over per-call limit (${g.perCall} USDC)`, 402);
-      if (daySpent + amt > daily) return err(`Over daily limit (${g.daily} USDC)`, 402);
-      if (g.spentMicro + amt > budget) return err(`Over budget (${fromMicro(Math.max(0, budget - g.spentMicro))} USDC left)`, 402);
-      const n = g.count + 1, ts = new Date(now).toISOString(), amount = fromMicro(amt);
-      const hash = await sha256hex(`${g.head}|${n}|${ts}|${amount}|${b.sealed}`);
-      const entry = { n, t: ts, amount, sealed: b.sealed, prev: g.head, hash };
-      const pageKey = `l:${g.id}:${Math.floor((n - 1) / PAGE)}`;
-      const page = await getJSON(env, pageKey, []);
-      page.push(entry);
-      await putJSON(env, pageKey, page);
-      g.count = n; g.head = hash; g.spentMicro += amt; g.day = today; g.daySpentMicro = daySpent + amt; g.lastAt = ts;
-      await putJSON(env, `g:${g.id}`, g);
-      await bumpStats(env, { payments: 1, volume: amt });
-      await pushFeed(env, { t: ts, k: 'pay' });
-      return json({ ok: true, receipt: { grant: g.id, n, t: ts, amount, prev: entry.prev, hash }, ...view() }, 200, CORS);
+      const le = limitError(g, amt, tag, now);
+      if (le) return err(le[0], le[1]);
+      if (g.approveAbove && amt > toMicro(g.approveAbove)) {
+        g.pending = (g.pending || []).filter(x => x.status === 'pending' ? Date.parse(x.exp) > now - 86400e3 : Date.parse(x.t) > now - 86400e3).slice(-40);
+        if (g.pending.filter(x => x.status === 'pending' && Date.parse(x.exp) > now).length >= 10) return err('Too many payments waiting for the owner', 429);
+        const rid = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(12)))).replace(/\+/g, '-').replace(/\//g, '_');
+        const exp = new Date(now + 30 * 60e3).toISOString();
+        g.pending.push({ id: rid, t: new Date(now).toISOString(), amount: fromMicro(amt), sealed: b.sealed, tag, status: 'pending', exp });
+        await putJSON(env, `g:${g.id}`, g);
+        return json({ ok: false, pending: true, request: rid, expires: exp, error: `Waiting for the owner's approval (above ${g.approveAbove} USDC)` }, 202, CORS);
+      }
+      const receipt = await recordPayment(env, g, amt, b.sealed, tag, now);
+      return json({ ok: true, receipt, ...view() }, 200, CORS);
+    }
+    if (p.startsWith('/api/spend/') && m === 'GET') {
+      const rid = p.slice(11), it = (g.pending || []).find(x => x.id === rid);
+      if (!it) return err('No such request', 404);
+      const st = it.status === 'pending' && Date.parse(it.exp) <= now ? 'expired' : it.status;
+      return json({ ok: true, request: rid, status: st, amount: it.amount, receipt: it.receipt || null, reason: it.reason || '' }, 200, CORS);
     }
     return err('Method not allowed', 405);
   }
 
   return err('Not found', 404);
+}
+
+/* ---------- Agent 01: a public demo agent ----------
+   Runs on its own throwaway wallet, created by the Worker. Demo sellers, no real money moves.
+   Its grant is real and verifiable on the Proof page. It never counts in the public stats. */
+const A1 = { budget: '30', perCall: '0.1', daily: '1', days: 30, approveAbove: '0.08', sellerDaily: '0.4' };
+const A1_RESEARCH = ['search.demo', 'newswire.demo', 'llm.demo'];
+const A1_JOBS = [
+  ['newswire.demo', 'GET /headlines?q=robinhood-chain', 'morning news scan', 0.004, 0.02],
+  ['fx.demo', 'GET /rates?base=USD', 'rates for the daily report', 0.001, 0.006],
+  ['search.demo', 'POST /search "tokenized stocks volume"', 'market research', 0.01, 0.05],
+  ['search.demo', 'POST /search "AI agents payments"', 'topic research', 0.01, 0.05],
+  ['llm.demo', 'POST /v1/chat summary, 2k tokens', 'summarize findings', 0.02, 0.09],
+  ['llm.demo', 'POST /v1/chat full report, 14k tokens', 'weekly report draft', 0.07, 0.16],
+  ['ocr.demo', 'POST /scan filing.pdf', 'read a company filing', 0.03, 0.13],
+  ['prices.demo', 'GET /quote?symbols=8', 'price check', 0.002, 0.01],
+  ['translate.demo', 'POST /translate 3 pages', 'translate a source', 0.01, 0.04],
+  ['vision.demo', 'POST /describe chart.png', 'read a chart', 0.02, 0.11],
+];
+const a1b64url = u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function a1Addr(d) {
+  const E = DUSK_ECC, Q = E._affine(E._mulAdd(d, E._G, 0n, E._G)), pub = new Uint8Array(64);
+  pub.set(E.bigTo32(Q[0])); pub.set(E.bigTo32(Q[1]), 32);
+  return '0x' + E.bytesToHex(E.keccak256(pub).slice(12));
+}
+function a1Sign(d, text) {
+  const E = DUSK_ECC, N = E._N, e = E._mod(E.bytesToBig(E.hashMessage(text)), N);
+  for (;;) {
+    const k = E._mod(E.bytesToBig(crypto.getRandomValues(new Uint8Array(32))), N); if (!k) continue;
+    const P = E._affine(E._mulAdd(k, E._G, 0n, E._G)), r = E._mod(P[0], N); if (!r) continue;
+    let s = E._mod(E._inv(k, N) * (e + r * d), N); if (!s) continue;
+    let v = Number(P[1] & 1n); if (s > N / 2n) { s = N - s; v ^= 1; }
+    return '0x' + E.bytesToHex(E.bigTo32(r)) + E.bytesToHex(E.bigTo32(s)) + (27 + v).toString(16);
+  }
+}
+async function a1State(env) {
+  let st = await getJSON(env, 'a1:state');
+  if (st) {
+    const g = await getJSON(env, `g:${st.id}`);
+    if (g && g.status === 'active' && g.approveAbove === A1.approveAbove && Date.parse(g.expires) > Date.now() + 3600e3) return st;
+    if (g && g.status !== 'revoked') { g.status = 'revoked'; await putJSON(env, `g:${g.id}`, g); }
+  }
+  const E = DUSK_ECC;
+  let d = 0n; while (!d) d = E._mod(E.bytesToBig(crypto.getRandomValues(new Uint8Array(32))), E._N);
+  const owner = a1Addr(d), now = Date.now();
+  const id = a1b64url(crypto.getRandomValues(new Uint8Array(15))), token = a1b64url(crypto.getRandomValues(new Uint8Array(24))), sk = crypto.getRandomValues(new Uint8Array(32));
+  const clean = { id, owner, budget: A1.budget, perCall: A1.perCall, daily: A1.daily, expires: new Date(now + A1.days * 86400e3).toISOString(), issued: new Date(now).toISOString(), approveAbove: A1.approveAbove, sellerDaily: A1.sellerDaily };
+  const signature = a1Sign(d, grantMessage(clean)).toLowerCase();
+  if (DUSK_ECC.recoverAddress(grantMessage(clean), signature) !== owner) throw new Error('agent01 signature');
+  const genesis = await sha256hex(`dusk:${id}:${signature}`);
+  await putJSON(env, `g:${id}`, { ...clean, signature, status: 'active', demo: true, encName: '', wrappedKey: '', tokenHash: await sha256hex(token), allow: [], encAllow: '', anchors: [], spentMicro: 0, day: dayKey(now), daySpentMicro: 0, count: 0, head: genesis, genesis, lastAt: null });
+  st = { id, token, sk: a1b64url(sk), owner, run: (st && st.run || 0) + 1 };
+  await putJSON(env, 'a1:state', st);
+  return st;
+}
+async function a1Tick(env) {
+  const st = await a1State(env);
+  const log = await getJSON(env, 'a1:log', { totals: { asked: 0, approved: 0, refused: 0 }, items: [] });
+  const raw = Uint8Array.from(atob(st.sk.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt']);
+  const hkey = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  // The demo owner is a script too: it approves research spending and declines the rest.
+  const g0 = await getJSON(env, `g:${st.id}`);
+  for (const it of (g0 && g0.pending || []).filter(x => x.status === 'pending')) {
+    const yes = A1_RESEARCH.includes(it.seller || '');
+    const g = await getJSON(env, `g:${st.id}`);
+    const [res] = await decideRequest(env, g, it.id, yes ? 'approve' : 'decline', Date.now());
+    const li = log.items.find(x => x.request_id === it.id);
+    if (li) { li.decision = res.status || 'declined'; li.reason = res.ok ? (yes ? 'Approved by the owner' : 'Declined by the owner') : res.error; li.ok = res.status === 'approved'; if (res.receipt) li.n = res.receipt.n; li.decidedAt = new Date().toISOString(); }
+    if (res.status === 'approved') { log.totals.approved++; log.totals.waiting = Math.max(0, (log.totals.waiting || 0) - 1); }
+    else { log.totals.refused++; log.totals.waiting = Math.max(0, (log.totals.waiting || 0) - 1); }
+  }
+  const n = 1 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < n; i++) {
+    const [seller, request, note, lo, hi] = A1_JOBS[Math.floor(Math.random() * A1_JOBS.length)];
+    const amount = fromMicro(Math.max(1000, Math.round((lo + Math.random() * (hi - lo)) * MICRO / 1000) * 1000));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify({ seller, request, note }))));
+    const sealed = btoa(String.fromCharCode(...iv, ...ct));
+    const tag = [...new Uint8Array(await crypto.subtle.sign('HMAC', hkey, new TextEncoder().encode(seller)))].map(x => x.toString(16).padStart(2, '0')).join('');
+    const req = new Request('https://duskdot.fun/api/spend', { method: 'POST', headers: { authorization: `Bearer ${st.id}.${st.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ amount, sealed, tag }) });
+    let r; try { r = await (await api(req, env, new URL(req.url))).json(); } catch (e) { r = { ok: false, error: 'DUSK unreachable' }; }
+    log.totals.asked++;
+    if (r.pending) {
+      log.totals.waiting = (log.totals.waiting || 0) + 1;
+      const g = await getJSON(env, `g:${st.id}`); const it = (g.pending || []).find(x => x.id === r.request); if (it) { it.seller = seller; await putJSON(env, `g:${g.id}`, g); }
+      log.items.unshift({ t: new Date().toISOString(), seller, request, note, amount, ok: false, pending: true, request_id: r.request, reason: r.error, n: null });
+    } else {
+      r.ok ? log.totals.approved++ : log.totals.refused++;
+      log.items.unshift({ t: new Date().toISOString(), seller, request, note, amount, ok: !!r.ok, reason: r.ok ? '' : r.error, n: r.ok ? r.receipt.n : null });
+    }
+  }
+  log.items = log.items.slice(0, 300); log.lastRun = new Date().toISOString(); log.grant = st.id;
+  await putJSON(env, 'a1:log', log);
+  return log;
+}
+async function a1Public(env) {
+  let log = await getJSON(env, 'a1:log');
+  if (!log) log = await a1Tick(env);
+  const g = await getJSON(env, `g:${log.grant}`);
+  const today = dayKey(Date.now());
+  return json({
+    ok: true, demo: true,
+    grant: g ? { id: g.id, owner: g.owner, status: g.status, budget: g.budget, perCall: g.perCall, daily: g.daily, approveAbove: g.approveAbove || null, sellerDaily: g.sellerDaily || null, expires: g.expires, spent: fromMicro(g.spentMicro), spentToday: fromMicro(g.day === today ? g.daySpentMicro : 0), count: g.count } : null,
+    totals: log.totals, lastRun: log.lastRun, items: log.items.slice(0, 120),
+  }, 200, CORS);
 }
 
 export default {
@@ -444,5 +657,8 @@ export default {
       catch (e) { return e && e.status ? err(e.message, e.status) : err('Server error', 500); }
     }
     return env.ASSETS.fetch(req);
+  },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(a1Tick(env).catch(() => {}));
   },
 };
