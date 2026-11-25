@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>DUSK — Spent in silence. Bound by proof.</title>
+<title>DUSK | Spent in silence. Bound by proof.</title>
 <meta name="description" content="DUSK gives AI agents a signed spending grant on Robinhood Chain. Limits enforced on every call. Every payment sealed in a ledger only the owner can open.">
 <meta name="theme-color" content="#0e0b22">
 <meta property="og:title" content="DUSK">
@@ -54,6 +54,12 @@ main{position:relative;z-index:5}
 @keyframes arc{to{stroke-dashoffset:0}}
 .ca{margin:0 auto;display:none;align-items:center;gap:10px;border:1px solid var(--line2);background:rgba(10,8,24,.5);padding:6px 6px 6px 14px;font-family:var(--mono);font-size:12.5px;max-width:min(560px,46vw)}
 .ca.on{display:flex}
+.topca,.topconn{height:42px;padding:0 16px;font-family:var(--mono);font-size:12px;letter-spacing:.08em;white-space:nowrap}
+.topca[hidden]{display:none}
+.topconn .b{display:none}
+.topconn.on:hover .a{display:none}.topconn.on:hover .b{display:inline}
+.topconn.on{border-color:var(--ember2)}
+@media(max-width:380px){.top{padding-left:12px;padding-right:12px;gap:6px}.top .mark b{letter-spacing:.06em}}
 .ca span{color:var(--ember2);white-space:nowrap}
 .ca code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spacer{flex:1}
@@ -177,6 +183,19 @@ h1 em,h2 em,h3 em{font-style:italic;color:var(--ember2)}
 .note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:20px;line-height:1.7}
 .msg{font-family:var(--mono);font-size:12.5px;margin-top:16px;min-height:1em}
 .msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+.insights{max-width:1400px;margin:18px auto 0;padding:22px 26px;text-align:left}
+.ihead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.ihead h3{font-family:var(--serif);font-weight:400;font-size:30px}.ihead h3 em{color:var(--ember2)}.ihead .spacer{flex:1}
+.itiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:22px}
+.itiles div{border:1px solid var(--line);padding:16px 18px}.itiles b{display:block;font-family:var(--serif);font-weight:400;font-size:38px;color:var(--bone)}.itiles span{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.igrid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px;margin-top:12px}
+.icard{border:1px solid var(--line);padding:18px}.icard h4{font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+.ibars{display:flex;align-items:flex-end;gap:5px;height:150px}.ibars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}.ibars i{display:block;background:linear-gradient(180deg,var(--ember2),var(--ember));min-height:2px}.ibars i.z{background:var(--line2)}
+.idays{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:8px}
+.irow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-family:var(--mono);font-size:12.5px;margin-bottom:12px}.irow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}.irow b{font-weight:400;color:var(--bone)}
+.irow em{grid-column:1/-1;display:block;height:4px;background:var(--line)}.irow em i{display:block;height:100%;background:var(--ember)}
+.irow.blue em i{background:#7f95ff}
+@media(max-width:900px){.itiles{grid-template-columns:repeat(2,1fr)}.igrid{grid-template-columns:1fr}}
+.testpay{margin-top:14px}.testrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}.testrow input{flex:1 1 160px;min-width:0}.testrow .btn{flex:0 0 auto}
 .who{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:60px auto 0;max-width:1400px;padding:16px 22px}
 .who code{font-family:var(--mono);font-size:13.5px}
 .who .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
@@ -314,6 +333,9 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
 @media (max-width:820px){
   :root{--pad:20px}
   .top{gap:10px;flex-wrap:wrap}
+  .topca,.topconn{padding:0 10px;font-size:11px}
+  #ghLink,.topca{display:none!important}
+  .top{gap:8px}.top .xbtn{width:38px;height:38px}.topconn{height:38px;padding:0 8px;letter-spacing:.02em}.top .mark b{letter-spacing:.12em}.topconn{font-size:10.5px}
   .mark b{font-size:20px}
   .ca{order:5;flex-basis:100%;max-width:none;margin:0}
   .menu{display:inline-flex}
@@ -358,9 +380,11 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
     <svg viewBox="0 0 64 64" aria-hidden="true"><path class="arc" d="M15 40 A17 17 0 0 1 30.2 23.1 M33.8 23.1 A17 17 0 0 1 49 40" fill="none" stroke="#ff7b42" stroke-width="2"/><path class="hz" d="M6 40 Q32 39.2 58 40 Q32 40.8 6 40Z" fill="#f1e7d8"/><path class="blade" d="M32 3 L34.2 40 L32 61 L29.8 40 Z" fill="#f1e7d8"/><rect x="30.3" y="38.3" width="3.4" height="3.4" transform="rotate(45 32 40)" fill="#0e0b22" stroke="#f1e7d8" stroke-width=".9"/></svg>
     <b>DUSK</b>
   </a>
-  <div class="ca" id="caBar"><span>$DUSK CA</span><code id="caText"></code><button class="btn sm" id="caCopy" type="button">Copy</button></div>
   <div class="spacer"></div>
   <button class="btn xbtn menu" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 7h18v1.6H3zM3 15.4h18V17H3z"/></svg></button>
+  <button class="btn sm topca" id="topCA" type="button" hidden>Copy CA</button>
+  <button class="btn sm topconn" id="topConn" type="button"><span class="a">Connect</span><span class="b">Disconnect</span></button>
+  <a class="btn xbtn" id="ghLink" href="https://github.com/DuskAgents/dusk" target="_blank" rel="noopener" aria-label="DUSK on GitHub"><svg viewBox="0 0 24 24"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/></svg></a>
   <a class="btn xbtn" id="xLink" href="#" target="_blank" rel="noopener" aria-label="DUSK on X"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L1 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L6.3 3.9H4.5L17.8 20z"/></svg></a>
 </header>
 
@@ -443,6 +467,7 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
       </div>
       <div id="app" hidden style="text-align:left">
         <div class="panel who"><span class="dot"></span><code id="whoAddr"></code><span id="tierLine" class="tierline"></span><span class="spacer"></span><button class="btn sm" id="refreshBtn" type="button">Refresh</button><button class="btn sm" id="discBtn" type="button">Disconnect</button></div>
+        <div class="panel insights" id="insights"><div class="ihead"><h3>Spending <em>insights</em></h3><span class="note" style="margin:0">Every ledger is opened in this browser only. DUSK never sees these numbers by seller.</span><span class="spacer"></span><button class="btn sm" id="insBtn" type="button">Open insights</button></div><div id="insBody"></div></div>
         <div class="grants" id="grants"></div>
       </div>
     </div>
@@ -551,7 +576,7 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
       <div class="tool">
         <p class="kick b rv">Agent key</p>
         <h3 class="h3 rv">Check a key's <em>live limits.</em></h3>
-        <p class="lead center rv" style="margin-top:20px">Only the grant id and token are sent. The sealing key never leaves this page.</p>
+        <p class="lead center rv" style="margin-top:20px">Only the grant id and token are sent. The sealing key never leaves this page. Then test a payment before your agent makes it.</p>
         <form class="proofin rv" id="keyForm" autocomplete="off"><input id="keyIn" type="password" placeholder="Agent key" required><button class="btn sun" type="submit">Check</button></form>
         <div id="keyOut" style="text-align:left"></div>
       </div>
@@ -565,17 +590,36 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
       <div style="text-align:center">
         <p class="kick rv">For agents</p>
         <h2 class="h2 rv" style="margin-top:22px">Ask first,<br><em>then pay.</em></h2>
-        <p class="lead center rv" style="margin-top:28px">Your agent holds its own wallet. Before every payment it asks DUSK, and pays the seller only when the answer is <code>ok: true</code>.</p>
+        <p class="lead center rv" style="margin-top:28px">Open source on <a href="https://github.com/DuskAgents/dusk" target="_blank" rel="noopener">GitHub</a>. Your agent holds its own wallet. Before every payment it asks DUSK, and pays the seller only when the answer is <code>ok: true</code>.</p>
       </div>
       <div class="flow">
         <div class="step rv"><i>i</i><div><h3>The agent <em>key</em></h3><p>Created in the vault, shown once. Three parts joined by dots: <code>grantId.token.sealingKey</code>. Send only <code>grantId.token</code> as the bearer. The sealing key never leaves your agent.</p></div></div>
-        <div class="step rv"><i>ii</i><div><h3>Two <em>endpoints</em></h3>
+        <div class="step rv"><i>ii</i><div><h3>Three <em>endpoints</em></h3>
           <div class="ep"><b>GET</b><span>/api/agent</span></div><p>Limits, spent, remaining, remaining today, status.</p>
+          <div class="ep"><b>POST</b><span>/api/check</span></div><p>Same body without <code>sealed</code>. A dry run: same answer as spend, nothing is spent or recorded.</p>
           <div class="ep"><b>POST</b><span>/api/spend</span></div><p>Body <code>{ amount, sealed, tag }</code>. Amount is a USDC string, up to 6 decimals. Sealed is AES-GCM ciphertext, base64. Tag is the seller's domain keyed with the sealing key, checked against the grant's private allowlist.</p>
           <p style="margin-top:12px">Answers: <code>200</code> approved · <code>402</code> over a limit · <code>403</code> paused, revoked, expired or seller not allowed · <code>401</code> bad key · <code>429</code> over 120 calls a minute.</p></div></div>
         <div class="step rv"><i>iii</i><div style="min-width:0"><h3>Drop-in <em>client</em></h3>
           <div class="codebar"><span class="note" style="margin:0">Node 18+, Deno, Bun or any browser. No dependencies.</span><button class="btn sm" type="button" data-copy="snippet">Copy</button></div>
           <pre id="snippet"></pre></div></div>
+        <div class="step rv"><i>iv</i><div style="min-width:0"><h3>Any <em>agent.</em></h3><p>Plug DUSK into Claude, Cursor or any MCP agent with the DUSK MCP server. Your agent gets three tools: <code>dusk_limits</code>, <code>dusk_check</code> and <code>dusk_spend</code>. Prefer Python? Same calls, one file. Both are on <a href="https://github.com/DuskAgents/dusk" target="_blank" rel="noopener">GitHub</a>.</p>
+          <div class="codebar"><span class="note" style="margin:0">MCP config · Node 18+, no dependencies</span><button class="btn sm" type="button" data-copy="mcpSnip">Copy</button></div>
+<pre id="mcpSnip">{
+  "mcpServers": {
+    "dusk": {
+      "command": "node",
+      "args": ["/path/to/dusk/mcp/dusk-mcp.mjs"],
+      "env": { "DUSK_AGENT_KEY": "&lt;grantId&gt;.&lt;token&gt;.&lt;sealingKey&gt;" }
+    }
+  }
+}</pre>
+          <div class="codebar" style="margin-top:18px"><span class="note" style="margin:0">Python 3.9+ · pip install cryptography</span><button class="btn sm" type="button" data-copy="pySnip">Copy</button></div>
+<pre id="pySnip">from dusk_agent import Dusk
+
+dusk = Dusk(os.environ["DUSK_AGENT_KEY"])
+r = dusk.spend("0.0025", "api.vendor.dev/search", request="lithium supply 2026")
+if r["ok"]:
+    ...  # pay the seller from your agent wallet</pre></div></div>
       </div>
     </div>
   </section>
@@ -616,7 +660,7 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
         <p>No custody, no deposits, no transaction to start. A wallet, a signature and a key.</p>
       </div>
       <div class="row rv" style="margin-top:40px"><a class="btn sun" href="#vault">Open the vault</a></div>
-      <footer><span>DUSK · Robinhood Chain</span><span id="footX"></span></footer>
+      <footer><span>DUSK · Robinhood Chain</span><span><a href="https://github.com/DuskAgents/dusk" target="_blank" rel="noopener">GitHub</a> · <span id="footX"></span></span></footer>
     </div>
   </section>
 </main>
@@ -774,7 +818,7 @@ async function api(path, opts = {}) {
 }
 
 /* ---------- CA + X ---------- */
-function showCA(ca) { $('#caText').textContent = ca; $('#caBar').classList.add('on'); $('#caCopy').onclick = () => copy(ca); }
+function showCA(ca) { $('#topCA').hidden = false; $('#topCA').onclick = () => copy(ca); }
 if (CA) showCA(CA); else fetch(API + '/api/ca').then(r => r.json()).then(d => { if (d && /^0x[0-9a-fA-F]{40}$/.test(d.ca || '')) showCA(d.ca); }).catch(() => {});
 fetch(API + '/api/tier').then(r => r.json()).then(d => { if (!d || !d.ok) return; document.querySelectorAll('[data-tmin]').forEach(e => e.textContent = Number(d.min).toLocaleString('en-US')); const o = $('#tierOpen'); if (o) o.hidden = !!d.gated; }).catch(() => {});
 if (X_URL) { $('#xLink').href = X_URL; $('#footX').innerHTML = `<a href="${esc(X_URL)}" target="_blank" rel="noopener">X</a>`; }
@@ -946,6 +990,7 @@ async function connect(m = $('#gateMsg')) {
     compose();
     S.tier = v.tier; $('#tierLine').innerHTML = tierLine(v.tier);
     await render(v.grants);
+    topConn();
     return true;
   } catch (e) {
     setMsg(m, walletError(e), 'bad');
@@ -956,8 +1001,8 @@ async function connect(m = $('#gateMsg')) {
 async function disconnect() {
   const t = S.token;
   Object.assign(S, { addr: null, token: null, key: null, grants: [], open: {}, keys: {} });
-  $('#app').hidden = true; $('#gate').hidden = false; $('#grants').innerHTML = ''; $('#newKey').innerHTML = ''; setMsg($('#gateMsg'), 'Disconnected.', 'ok');
-  compose();
+  $('#app').hidden = true; $('#gate').hidden = false; $('#grants').innerHTML = ''; $('#newKey').innerHTML = ''; $('#insBody').innerHTML = ''; $('#insBtn').dataset.open = '0'; $('#insBtn').textContent = 'Open insights'; setMsg($('#gateMsg'), 'Disconnected.', 'ok');
+  compose(); topConn();
   if (t) api('/api/logout', { method: 'POST', headers: { authorization: 'Bearer ' + t } }).catch(() => {});
   try { await provider()?.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }); } catch {}
 }
@@ -1023,6 +1068,35 @@ async function loadLedger(id) {
       (l.entries.length ? `<div class="tbl"><table><thead><tr><th>#</th><th>Time (UTC)</th><th>USDC</th><th>Seller</th><th>Request</th><th>Note</th><th>Hash</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<p class="none">No payments yet. Approved payments appear here, sealed.</p>') + '</div>';
   } catch (e) { art.innerHTML = `<div class="ledger"><p class="none" style="color:var(--bad)">${esc(walletError(e))}</p></div>`; }
 }
+/* ---------- insights (decrypted locally) ---------- */
+async function insights() {
+  const body = $('#insBody');
+  if (!S.grants || !S.grants.length) { body.innerHTML = '<p class="note" style="margin-top:18px">No grants yet. Sign one above and your agents\' spending shows up here.</p>'; return; }
+  body.innerHTML = '<p class="note" style="margin-top:18px">Opening your ledgers…</p>';
+  try {
+    const per = await Promise.all(S.grants.map(async g => {
+      let name = 'Sealed grant'; try { name = dec.decode(await unseal(S.key, g.encName)); } catch {}
+      if (!g.count) return { name, rows: [], partial: false };
+      const [l, key] = await Promise.all([api(`/api/grants/${g.id}/ledger`, { headers: { authorization: 'Bearer ' + S.token } }), grantKey(g)]);
+      const rows = await Promise.all(l.entries.map(async e => { let d = {}; try { d = JSON.parse(dec.decode(await unseal(key, e.sealed))); } catch {} return { t: e.t, m: toMicro(e.amount), seller: hostOf(d.seller || 'unknown') || 'unknown' }; }));
+      return { name, rows, partial: l.count > l.entries.length };
+    }));
+    const all = per.flatMap(p => p.rows);
+    const total = all.reduce((a, r) => a + r.m, 0);
+    const bySeller = {}, byAgent = {};
+    all.forEach(r => { bySeller[r.seller] = (bySeller[r.seller] || 0) + r.m; });
+    per.forEach(p => { const m = p.rows.reduce((a, r) => a + r.m, 0); if (m) byAgent[p.name] = (byAgent[p.name] || 0) + m; });
+    const days = [...Array(14)].map((_, i) => { const d = new Date(Date.now() - (13 - i) * 864e5); return d.toISOString().slice(0, 10); });
+    const byDay = Object.fromEntries(days.map(d => [d, 0])); all.forEach(r => { const d = r.t.slice(0, 10); if (d in byDay) byDay[d] += r.m; });
+    const maxDay = Math.max(1, ...Object.values(byDay));
+    const list = (o, cls) => { const e = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 6), mx = Math.max(1, ...e.map(x => x[1])); return e.length ? e.map(([k, v]) => `<div class="irow ${cls}"><span>${esc(k)}</span><b>${fromMicro(v)}</b><em><i style="width:${(v / mx * 100).toFixed(1)}%"></i></em></div>`).join('') : '<p class="note" style="margin:0">No payments yet.</p>'; };
+    body.innerHTML = `<div class="itiles"><div><b>${fromMicro(total)}</b><span>USDC spent</span></div><div><b>${all.length}</b><span>Payments</span></div><div><b>${Object.keys(byAgent).length}</b><span>Agents paying</span></div><div><b>${Object.keys(bySeller).length}</b><span>Sellers</span></div></div>
+      <div class="igrid"><div class="icard"><h4>Last 14 days · USDC</h4><div class="ibars">${days.map(d => `<div title="${d} · ${fromMicro(byDay[d])} USDC"><i class="${byDay[d] ? '' : 'z'}" style="height:${byDay[d] ? Math.max(3, byDay[d] / maxDay * 100).toFixed(1) : 1.5}%"></i></div>`).join('')}</div><div class="idays"><span>${days[0].slice(5)}</span><span>today</span></div></div>
+      <div class="icard"><h4>Top sellers</h4>${list(bySeller, '')}</div><div class="icard"><h4>By agent</h4>${list(byAgent, 'blue')}</div></div>
+      ${per.some(p => p.partial) ? '<p class="note" style="margin-top:12px">Busy agents: based on their latest 300 payments.</p>' : ''}`;
+  } catch (e) { body.innerHTML = `<p class="msg bad">${esc(walletError(e))}</p>`; }
+}
+$('#insBtn').addEventListener('click', () => { const b = $('#insBtn'), open = b.dataset.open === '1'; if (open) { b.dataset.open = '0'; b.textContent = 'Open insights'; $('#insBody').innerHTML = ''; } else { b.dataset.open = '1'; b.textContent = 'Hide insights'; insights(); } });
 $('#grants').addEventListener('click', async ev => {
   const b = ev.target.closest('button[data-a]'); if (!b) return;
   const id = b.closest('.grant').dataset.id, a = b.dataset.a;
@@ -1089,6 +1163,18 @@ $('#grantForm').addEventListener('submit', async ev => {
   } finally { btn.disabled = false; }
 });
 $('#connectBtn').onclick = () => connect();
+function topConn() {
+  const b = $('#topConn'), on = !!S.token;
+  b.classList.toggle('on', on);
+  b.querySelector('.a').textContent = on ? S.addr.slice(0, 6) + '…' + S.addr.slice(-4) : 'Connect';
+}
+$('#topConn').onclick = async () => {
+  if (S.token) { await disconnect(); topConn(); return; }
+  location.hash = '#vault';
+  await connect();
+  topConn();
+};
+$('#connectBtn').addEventListener('click', () => setTimeout(topConn, 0));
 $('#discBtn').onclick = disconnect;
 $('#refreshBtn').onclick = refresh;
 
@@ -1150,6 +1236,22 @@ $('#keyForm').addEventListener('submit', async e => {
     out.innerHTML = `<div class="panel result"><div class="ghead"><h3>Grant ${esc(r.grant.slice(0, 8))}…</h3><span class="chip ${st}">${st}</span></div>
       <div class="meter"><i style="width:${pct.toFixed(2)}%"></i></div>
       <div class="gmeta"><div><b>${esc(r.spent)} / ${esc(r.budget)}</b>spent · USDC</div><div><b>${esc(r.remainingToday)}</b>left today of ${esc(r.daily)}</div><div><b>${esc(r.perCall)}</b>max per call</div><div><b>${esc(new Date(r.expires).toISOString().slice(0, 10))}</b>expires</div></div></div>`;
+    const sk = parts[2] || '';
+    out.insertAdjacentHTML('beforeend', `<div class="panel result testpay"><h3 class="h3" style="font-size:26px;margin:0">Test a <em>payment.</em></h3>
+      <p class="note" style="margin:8px 0 0">Ask DUSK what it would answer your agent. Nothing is spent, nothing is recorded.</p>
+      <form class="testrow" id="testForm" autocomplete="off"><input id="testAmt" inputmode="decimal" placeholder="Amount · USDC" value="${esc(r.perCall)}" required><input id="testSeller" placeholder="Seller, e.g. api.vendor.dev"><button class="btn sun" type="submit">Test</button></form>
+      <p class="msg" id="testMsg"></p></div>`);
+    $('#testForm').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const m = $('#testMsg'), amount = $('#testAmt').value.trim(), seller = $('#testSeller').value.trim();
+      m.className = 'msg'; m.textContent = 'Asking DUSK…';
+      try {
+        let tag = '';
+        if (seller && sk) { const k = await crypto.subtle.importKey('raw', unb64(sk), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); tag = Array.from(new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(hostOf(seller)))), x => x.toString(16).padStart(2, '0')).join(''); }
+        const t = await api('/api/check', { method: 'POST', headers: { authorization: 'Bearer ' + parts[0] + '.' + parts[1] }, body: JSON.stringify({ amount, tag }) });
+        m.className = 'msg ok'; m.textContent = `Approved. Your agent could pay ${t.amount} USDC now. ${t.remainingToday} USDC left today.`;
+      } catch (e2) { m.className = 'msg bad'; m.textContent = 'Refused. ' + (e2.status === 401 ? 'This key is not valid.' : (e2.message || 'Try again.')) + (r.allowlist && !sk ? ' Paste the full key to test an allowlisted seller.' : ''); }
+    });
   } catch (err) { out.innerHTML = `<div class="panel result"><p class="msg bad">${esc(err.status === 401 ? 'This key is not valid.' : walletError(err))}</p></div>`; }
 });
 if (provider() && provider().on) provider().on('accountsChanged', a => { if (S.addr && (!a || !a[0] || a[0].toLowerCase() !== S.addr)) { disconnect(); } });
