@@ -60,10 +60,20 @@ export function createDusk(agentKey, { url = DEFAULT_URL } = {}) {
   }
 
   // Current limits and status of the grant.
+  // Dry run: same checks as spend, nothing is spent or recorded.
+  async function check({ amount, seller = '' }) {
+    const res = await fetch(`${base}/api/check`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...auth },
+      body: JSON.stringify({ amount: String(amount), tag: seller ? await tagOf(seller) : '' }),
+    });
+    return res.json(); // { ok: true, pass: true, ... } or { ok: false, error }
+  }
+
   async function limits() {
     const res = await fetch(`${base}/api/agent`, { headers: auth });
     return res.json();
   }
 
-  return { grantId, spend, limits, seal, open, tagOf };
+  return { grantId, spend, check, limits, seal, open, tagOf };
 }
