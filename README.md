@@ -48,6 +48,8 @@ if (r.ok) {
 
 No dependencies. Runs on Node 18+, Deno, Bun, browsers and Workers. See [`examples/agent.mjs`](examples/agent.mjs).
 
+**Owner approval (V3).** Set an ask-above amount on a grant and every bigger payment waits for your yes in the vault. `spend` then answers `{ ok: false, pending: true, request }`: call `await dusk.wait(request)` and pay only if the status is `approved`. Set a per-seller daily cap and no single seller can take more than that in a day.
+
 Test before you pay: `await dusk.check({ amount: '0.0025', seller: 'api.vendor.dev' })` runs the same checks as `spend`, and nothing is spent or recorded.
 
 ### MCP server
@@ -66,7 +68,7 @@ Plug DUSK into any MCP agent (Claude Desktop, Claude Code, Cursor and others). N
 }
 ```
 
-Your agent gets three tools: `dusk_limits`, `dusk_check` (dry run) and `dusk_spend`. It calls `dusk_spend` before every payment and pays only when DUSK approves. The sealing key never leaves your machine.
+Your agent gets four tools: `dusk_limits`, `dusk_check` (dry run), `dusk_spend` and `dusk_status`. It calls `dusk_spend` before every payment and pays only when DUSK approves. The sealing key never leaves your machine.
 
 ### Python
 
@@ -88,16 +90,21 @@ Same calls as the JS client: `limits()`, `check()`, `spend()`. See [`python/dusk
 |---|---|---|---|
 | GET | `/api/stats` | none | grants, payments, owners, volume |
 | GET | `/api/feed` | none | recent activity, no content |
-| GET | `/api/tier` | none | holder threshold and grant limits |
+| GET | `/api/tier` | none | holder threshold and grant limits, or `?address=0x…` for one wallet's tier |
 | GET | `/api/ca` | none | $DUSK contract address |
+| GET | `/api/agent01` | none | Agent 01, the public demo agent: its grant and every decision |
 | GET | `/api/proof/:id` | none | signed terms, status, ledger head, anchors |
 | POST | `/api/login` | wallet signature | session |
 | GET | `/api/vault` | session | your grants and tier |
 | POST | `/api/grants` | session + grant signature | create a grant |
 | POST | `/api/grants/:id/status` | session | pause, resume, revoke |
+| POST | `/api/grants/:id/rotate` | session | new agent key, same grant; the old key stops at once |
+| POST | `/api/vault/status` | session | pause or resume every grant at once |
 | GET | `/api/grants/:id/ledger` | session | sealed entries |
 | POST | `/api/grants/:id/anchor` | session | record an on-chain anchor |
 | GET | `/api/agent` | agent key | limits and status |
+| GET | `/api/spend/:request` | agent key | status of a payment waiting for the owner |
+| POST | `/api/grants/:id/requests/:request` | session | owner approves or declines a waiting payment |
 | POST | `/api/check` | agent key | `{ amount, tag }`, dry run, nothing recorded |
 | POST | `/api/spend` | agent key | `{ amount, sealed, tag }` |
 

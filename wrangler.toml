@@ -14,3 +14,6 @@ id = "YOUR_KV_NAMESPACE_ID"
 # Optional
 # [vars]
 # RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
+
+[triggers]
+crons = ["0 * * * *"]
