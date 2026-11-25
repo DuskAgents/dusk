@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agent 01 | A DUSK agent, live</title>
+<meta name="description" content="Agent 01 is a public demo agent. It asks DUSK before every payment. Watch what gets approved and what gets refused, live.">
+<meta name="theme-color" content="#0e0b22">
+<meta property="og:title" content="Agent 01 | DUSK">
+<meta property="og:description" content="A public agent that asks DUSK before every payment. Live.">
+<meta property="og:image" content="https://duskdot.fun/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@DuskAgents">
+<meta name="twitter:image" content="https://duskdot.fun/og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0b22'/%3E%3Cpath d='M32 6 L34 40 L32 60 L30 40 Z' fill='%23f1e7d8'/%3E%3Cpath d='M10 40 Q32 39 54 40 Q32 41 10 40Z' fill='%23f1e7d8'/%3E%3Cpath d='M18 40 A14 14 0 0 1 30 26.2 M34 26.2 A14 14 0 0 1 46 40' fill='none' stroke='%23ff7b42' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--night:#0e0b22;--ember:#ff7b42;--ember2:#ffb48a;--bone:#f1e7d8;--muted:#d9d1c6;--faint:#aba8bd;--line:rgba(241,231,216,.14);--ok:#9fe0b4;--bad:#ff8f7a;--blue2:#9fb0ff;
+--serif:'Cormorant Garamond',Georgia,serif;--mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;--sans:'Manrope',system-ui,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:var(--night)}
+body{min-height:100vh;color:var(--bone);font-family:var(--sans);background:radial-gradient(ellipse 1200px 520px at 50% 108%,rgba(255,123,66,.55),transparent 70%),linear-gradient(180deg,#09081f 0%,#14134a 55%,#251c5c 100%) fixed}
+a{color:var(--ember2);text-decoration:none}a:hover{text-decoration:underline}
+.top{display:flex;align-items:center;gap:16px;max-width:1240px;margin:0 auto;padding:22px 24px}
+.mark{display:flex;align-items:center;gap:12px;color:var(--bone);font-family:var(--serif);font-size:24px;letter-spacing:.32em}.mark:hover{text-decoration:none}
+.mark svg{width:30px;height:30px}.sp{flex:1}
+.btn{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(241,231,216,.3);padding:10px 14px;color:var(--bone)}.btn:hover{border-color:var(--ember);text-decoration:none}
+main{max-width:1240px;margin:0 auto;padding:30px 24px 80px}
+.k{font-family:var(--mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--ember2);display:flex;align-items:center;gap:10px}
+.k .live{width:8px;height:8px;border-radius:50%;background:var(--ember);box-shadow:0 0 12px var(--ember);animation:p 2s infinite}@keyframes p{50%{opacity:.35}}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(56px,8vw,112px);line-height:.95;margin-top:18px}h1 em{color:var(--ember2)}
+.lead{max-width:720px;margin-top:22px;font-size:18px;line-height:1.6;color:var(--muted)}
+.demo{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);padding:6px 10px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:40px}
+.tile{background:rgba(8,10,40,.75);border:1px solid rgba(150,175,255,.16);padding:20px}
+.tile b{display:block;font-family:var(--serif);font-weight:400;font-size:44px;line-height:1}
+.tile span{display:block;margin-top:8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.tile.ok b{color:var(--ok)}.tile.bad b{color:var(--bad)}
+.meter{height:4px;background:var(--line);margin-top:14px}.meter i{display:block;height:100%;background:var(--ember);box-shadow:0 0 10px var(--ember);width:0;transition:width 1s}
+.panel{margin-top:12px;background:rgba(8,10,40,.82);border:1px solid rgba(150,175,255,.16);padding:22px}
+.rules{display:flex;flex-wrap:wrap;gap:10px 28px;font-family:var(--mono);font-size:13px;color:var(--muted);align-items:center}
+.rules b{color:var(--bone);font-weight:500}
+.feed h2{font-family:var(--serif);font-weight:400;font-size:34px}.feed h2 em{color:var(--ember2)}
+.fhead{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}.fhead .note{font-family:var(--mono);font-size:12px;color:var(--faint)}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-family:var(--mono);font-size:13px}
+th{text-align:left;font-weight:400;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;font-size:11px;padding:8px 10px;border-bottom:1px solid rgba(241,231,216,.25)}
+td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+td.amt{color:var(--ember2);white-space:nowrap}td.t{color:var(--faint);white-space:nowrap}
+.v{white-space:nowrap}.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.wait{color:var(--ember2)}
+.why{display:block;color:var(--faint);font-size:12px;margin-top:3px}
+.req{color:var(--muted)}.seller{color:var(--bone)}
+tr.new td{animation:fl 1.4s ease}@keyframes fl{from{background:rgba(255,123,66,.18)}to{background:transparent}}
+.foot{margin-top:28px;font-family:var(--mono);font-size:12px;color:var(--faint);line-height:1.7}
+@media(max-width:860px){.top .btn{font-size:10.5px;padding:8px 10px}td,th{padding:9px 6px}.grid{grid-template-columns:repeat(2,1fr)}.hide-s{display:none}table{font-size:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="/" aria-label="DUSK home"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6 L34 40 L32 60 L30 40 Z" fill="#f1e7d8"/><path d="M10 40 Q32 39 54 40 Q32 41 10 40Z" fill="#f1e7d8"/><path d="M18 40 A14 14 0 0 1 30 26.2 M34 26.2 A14 14 0 0 1 46 40" fill="none" stroke="#ff7b42" stroke-width="2.4"/></svg>DUSK</a>
+  <span class="sp"></span>
+  <a class="btn" href="/#vault">Run your own agent</a>
+</header>
+<main>
+  <p class="k"><span class="live"></span>Live · updated every hour</p>
+  <h1>Agent <em>01.</em></h1>
+  <p class="lead">A public agent with a real DUSK grant. Before every payment it asks DUSK first. Inside its limits, approved. Over them, refused. Above 0.08, it waits for its owner. Every decision lands here, as it happens.</p>
+  <span class="demo">Demo agent · demo sellers · no real money moves</span>
+
+  <div class="grid">
+    <div class="tile"><b id="asked">0</b><span>Requests</span></div>
+    <div class="tile ok"><b id="approved">0</b><span>Approved</span></div>
+    <div class="tile bad"><b id="refused">0</b><span>Refused</span></div>
+    <div class="tile"><b id="today">0</b><span>USDC today, of <span id="daily" style="display:inline;margin:0">1</span></span><div class="meter"><i id="bar"></i></div></div>
+  </div>
+
+  <div class="panel rules" id="rules">Loading its grant…</div>
+
+  <div class="panel feed">
+    <div class="fhead"><h2>Every <em>decision.</em></h2><span class="note" id="last"></span></div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Time (UTC)</th><th>Seller</th><th class="hide-s">Request</th><th>USDC</th><th>DUSK said</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="t">Loading…</td></tr></tbody></table></div>
+  </div>
+
+  <p class="foot">Agent 01 runs on its own wallet, created for this demo. Its grant is signed like any other: open it on the <a id="proofLink" href="/#proof">Proof page</a> and your browser checks the signature itself. Its owner is a script too: above 0.08 USDC it says yes to research and no to the rest, on the next hour. Its requests are not counted in DUSK's public stats.</p>
+</main>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = iso => new Date(iso).toISOString().replace('T', ' ').slice(5, 16);
+  let seen = new Set(), first = true;
+  const verdict = x => {
+    if (x.pending && !x.decision) return '<span class="v wait">Waiting for owner</span><span class="why">' + esc(x.reason) + '</span>';
+    if (x.decision === 'approved') return '<span class="v ok">Approved by owner</span><span class="why">asked above the limit, owner said yes</span>';
+    if (x.decision) return '<span class="v bad">Declined by owner</span><span class="why">' + esc(x.reason || 'owner said no') + '</span>';
+    return x.ok ? '<span class="v ok">Approved</span>' : '<span class="v bad">Refused</span><span class="why">' + esc(x.reason) + '</span>';
+  };
+  async function load() {
+    try {
+      const r = await fetch('/api/agent01', { cache: 'no-store' }).then(x => x.json());
+      if (!r.ok) return;
+      const t = r.totals || {}, g = r.grant;
+      $('#asked').textContent = (t.asked || 0).toLocaleString('en-US');
+      $('#approved').textContent = (t.approved || 0).toLocaleString('en-US');
+      $('#refused').textContent = (t.refused || 0).toLocaleString('en-US');
+      if (g) {
+        $('#today').textContent = g.spentToday; $('#daily').textContent = g.daily;
+        $('#bar').style.width = Math.min(100, Number(g.spentToday) / Number(g.daily) * 100) + '%';
+        $('#rules').innerHTML = `<span>Grant <b>${esc(g.id.slice(0, 10))}…</b></span><span>Max per call <b>${esc(g.perCall)} USDC</b></span><span>Max per day <b>${esc(g.daily)} USDC</b></span>${g.approveAbove ? `<span>Asks its owner above <b>${esc(g.approveAbove)} USDC</b></span>` : ''}${g.sellerDaily ? `<span>Max per seller <b>${esc(g.sellerDaily)} USDC a day</b></span>` : ''}<span>Budget <b>${esc(g.spent)} / ${esc(g.budget)} USDC</b></span><span>Expires <b>${esc(g.expires.slice(0, 10))}</b></span><a href="/#proof/${encodeURIComponent(g.id)}">Verify the signature</a>`;
+        $('#proofLink').href = '/#proof/' + encodeURIComponent(g.id);
+      }
+      if (r.lastRun) $('#last').textContent = 'last run ' + fmt(r.lastRun) + ' UTC';
+      const items = r.items || [];
+      $('#rows').innerHTML = items.length ? items.map(x => {
+        const k = x.t + x.seller + x.amount, isNew = !first && !seen.has(k); seen.add(k);
+        return `<tr class="${isNew ? 'new' : ''}"><td class="t">${fmt(x.t)}</td><td class="seller">${esc(x.seller)}</td><td class="req hide-s">${esc(x.request)}</td><td class="amt">${esc(x.amount)}</td><td>${verdict(x)}</td></tr>`;
+      }).join('') : '<tr><td colspan="5" class="t">No decision yet.</td></tr>';
+      first = false;
+    } catch {}
+  }
+  load(); setInterval(load, 30000);
+})();
+</script>
+</body>
+</html>
