@@ -4,6 +4,7 @@
 //   dusk_limits  read the grant's live limits
 //   dusk_check   dry run: would this payment pass? Nothing is spent or recorded.
 //   dusk_spend   ask DUSK before paying a seller. Pay only when the answer is ok.
+//   dusk_status  follow a payment waiting for the owner's approval.
 //
 // Config: DUSK_AGENT_KEY=<grantId>.<token>.<sealingKey>   (required)
 //         DUSK_URL=https://duskdot.fun                     (optional)
@@ -29,6 +30,11 @@ const TOOLS = [
     name: 'dusk_check',
     description: 'Dry run. Ask DUSK whether a payment would be approved, without spending or recording anything.',
     inputSchema: { type: 'object', properties: { amount, seller }, required: ['amount'], additionalProperties: false },
+  },
+  {
+    name: 'dusk_status',
+    description: 'Check a payment that is waiting for the owner. Pay only when the status is approved.',
+    inputSchema: { type: 'object', properties: { request: { type: 'string', description: 'The request id returned by dusk_spend' } }, required: ['request'], additionalProperties: false },
   },
   {
     name: 'dusk_spend',
@@ -62,9 +68,17 @@ async function callTool(name, args = {}) {
   }
   if (name === 'dusk_spend') {
     const r = await dusk.spend({ amount: args.amount, seller: args.seller, request: args.request || '', note: args.note || '' });
+    if (r.pending) return text(`Waiting for the owner's approval. Do not pay yet. Call dusk_status with request "${r.request}" later.`);
     return r.ok
       ? text(`Approved. Pay ${r.receipt.amount} USDC to the seller now. Receipt #${r.receipt.n}, ${r.remainingToday} USDC left today.`)
       : text(`Refused: ${r.error}. Do not pay this seller.`, true);
+  }
+  if (name === 'dusk_status') {
+    const r = await dusk.status(args.request);
+    if (!r.ok) return text(`Unknown request: ${r.error}`, true);
+    if (r.status === 'approved') return text(`Approved by the owner. Pay ${r.amount} USDC to the seller now. Receipt #${r.receipt.n}.`);
+    if (r.status === 'pending') return text('Still waiting for the owner. Do not pay yet.');
+    return text(`${r.status === 'expired' ? 'Expired' : 'Declined'}${r.reason ? `: ${r.reason}` : ''}. Do not pay this seller.`, true);
   }
   throw Object.assign(new Error(`Unknown tool: ${name}`), { code: -32602 });
 }
