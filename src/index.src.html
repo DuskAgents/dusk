@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DUSK — Spent in silence. Bound by proof.</title>
+<meta name="description" content="DUSK gives AI agents a signed spending grant on Robinhood Chain. Limits enforced on every call. Every payment sealed in a ledger only the owner can open.">
+<meta name="theme-color" content="#0e0b22">
+<meta property="og:title" content="DUSK">
+<meta property="og:description" content="Spent in silence. Bound by proof.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0b22'/%3E%3Cpath d='M32 6 L34 40 L32 60 L30 40 Z' fill='%23f1e7d8'/%3E%3Cpath d='M10 40 Q32 39 54 40 Q32 41 10 40Z' fill='%23f1e7d8'/%3E%3Cpath d='M18 40 A14 14 0 0 1 30 26.2 M34 26.2 A14 14 0 0 1 46 40' fill='none' stroke='%23ff7b42' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0e0b22;--ember:#ff7b42;--ember2:#ffb48a;--bone:#f1e7d8;--violet:#2a1d5a;
+  --muted:#d9d1c6;--faint:#aba8bd;--line:rgba(241,231,216,.14);--line2:rgba(241,231,216,.28);
+  --panel:rgba(12,9,28,.82);--ok:#9fe0b4;--bad:#ff8f7a;
+  --s0:#0c1440;--s1:#1d2f80;--s2:#d0612f;--s3:#101b4c;--blue:#5c84ff;--blue2:#a9bcff;
+  --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;--mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;--sans:'Manrope',system-ui,-apple-system,Segoe UI,sans-serif;
+  --pad:8vw;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#04071a;color:var(--bone);-webkit-text-size-adjust:100%}
+body{font-family:var(--sans);font-size:16px;line-height:1.65;overflow-x:hidden}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+::selection{background:var(--ember);color:var(--night)}
+:focus-visible{outline:1.5px solid var(--ember2);outline-offset:3px}
+
+/* ---- the sky ---- */
+#skygrad{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,var(--s0) 0%,var(--s1) 46%,var(--s2) 76%,var(--s3) 100%)}
+#stars,#sky{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+#sky{opacity:.62}
+.mist{position:fixed;left:-10%;right:-10%;z-index:2;pointer-events:none;will-change:transform,opacity}
+.mist.m1{bottom:-8%;height:48vh;background:radial-gradient(60% 55% at 40% 70%,rgba(255,150,100,.18),transparent 70%),radial-gradient(45% 50% at 78% 80%,rgba(61,107,255,.24),transparent 70%);filter:blur(20px)}
+.mist.m2{top:14%;height:42vh;background:radial-gradient(50% 45% at 22% 50%,rgba(61,107,255,.20),transparent 70%),radial-gradient(40% 40% at 82% 40%,rgba(255,123,66,.07),transparent 70%);filter:blur(26px)}
+.grain{position:fixed;inset:0;z-index:4;pointer-events:none;opacity:.12;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+.glowcur{position:fixed;left:0;top:0;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;z-index:3;pointer-events:none;background:radial-gradient(circle,rgba(255,123,66,.10),transparent 62%);mix-blend-mode:screen;opacity:0;transition:opacity .6s}
+main{position:relative;z-index:5}
+
+/* ---- header ---- */
+.top{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;gap:18px;padding:18px var(--pad);transition:background .4s,padding .4s,border-color .4s;border-bottom:1px solid transparent}
+.top.scrolled{background:rgba(10,8,24,.62);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:12px var(--pad);border-bottom-color:var(--line)}
+.mark{display:flex;align-items:center;gap:14px;text-decoration:none}
+.mark svg{width:34px;height:34px}
+.mark b{font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:.36em}
+.mark .blade{transform-box:fill-box;transform-origin:center;animation:blade 1.4s cubic-bezier(.2,.7,.2,1) both}
+.mark .hz{transform-box:fill-box;transform-origin:center;animation:hz 1.2s .3s cubic-bezier(.2,.7,.2,1) both}
+.mark .arc{stroke-dasharray:60;stroke-dashoffset:60;animation:arc 1.6s .7s ease forwards}
+@keyframes blade{from{transform:scaleY(0)}to{transform:none}}
+@keyframes hz{from{transform:scaleX(0)}to{transform:none}}
+@keyframes arc{to{stroke-dashoffset:0}}
+.ca{margin:0 auto;display:none;align-items:center;gap:10px;border:1px solid var(--line2);background:rgba(10,8,24,.5);padding:6px 6px 6px 14px;font-family:var(--mono);font-size:12.5px;max-width:min(560px,46vw)}
+.ca.on{display:flex}
+.ca span{color:var(--ember2);white-space:nowrap}
+.ca code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spacer{flex:1}
+.ca.on+.spacer{display:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(169,188,255,.35);background:#0b1238;color:var(--bone);padding:14px 26px;cursor:pointer;text-decoration:none;font-size:14px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;transition:background .25s,border-color .25s,color .25s,transform .25s}
+.btn:hover{border-color:var(--bone);transform:translateY(-1px)}
+.btn.sun{background:var(--ember);border-color:var(--ember);color:var(--night)}
+.btn.sun:hover{background:var(--ember2);border-color:var(--ember2)}
+.btn.sm{padding:7px 13px;font-size:11.5px}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.xbtn{width:42px;height:42px;padding:0}
+.xbtn svg{width:16px;height:16px;fill:currentColor}
+.menu{display:none}
+
+/* ---- index ---- */
+.index{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:35;display:flex;flex-direction:column;align-items:flex-end;padding:8px 12px;border:1px solid transparent;transition:background .3s,border-color .3s}
+.index:hover{background:#0b1238;border-color:var(--line2)}
+.index a{display:flex;align-items:center;gap:12px;padding:7px 0;text-decoration:none;color:var(--faint);transition:color .3s}
+.index a span{font-family:var(--serif);font-size:18px;opacity:0;transform:translateX(8px);transition:opacity .35s,transform .35s;white-space:nowrap}
+.index a i{display:block;width:16px;height:1px;background:currentColor;transition:width .45s cubic-bezier(.2,.7,.2,1)}
+.index a:hover{color:var(--bone)}
+.index a.on{color:var(--ember2)}
+.index a.on i{width:42px}
+.index:hover a span,.index a:focus-visible span{opacity:1;transform:none}
+
+/* ---- type ---- */
+.kick{display:inline-block;font-family:var(--mono);font-size:12px;line-height:1.4;letter-spacing:.24em;color:var(--ember2);text-transform:uppercase;background:#0b1238;border:1px solid rgba(255,123,66,.45);padding:7px 14px}
+h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.005em}
+h1 em,h2 em,h3 em{font-style:italic;color:var(--ember2)}
+.h2{font-size:clamp(48px,7.2vw,132px);line-height:.95}
+.lead{font-size:clamp(16px,1.25vw,19px);color:#ece4d8;max-width:640px;text-shadow:0 1px 14px rgba(6,10,34,1),0 0 3px rgba(6,10,34,.9)}
+.center{text-align:center;margin-left:auto;margin-right:auto}
+.scene{position:relative;padding:0 var(--pad)}
+.page{scroll-margin-top:0}
+.spaced{padding-top:24vh;padding-bottom:8vh}
+.rv{opacity:0;transform:translateY(40px);clip-path:inset(-40% -20% 45% -20%);transition:opacity 1.2s cubic-bezier(.2,.7,.2,1),transform 1.3s cubic-bezier(.2,.7,.2,1),clip-path 1.3s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d,0s)}
+.rv.in{opacity:1;transform:none;clip-path:inset(-40% -20% -40% -20%)}
+.hl{height:1px;margin:0 auto 64px;max-width:1400px;background:linear-gradient(90deg,transparent,var(--blue) 18%,var(--bone) 50%,var(--ember) 82%,transparent);transform:scaleX(0);transition:transform 2s cubic-bezier(.2,.7,.2,1)}
+.hl.in{transform:scaleX(1)}
+
+/* ---- hero ---- */
+.hero{position:relative;isolation:isolate;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-top:96px;padding-bottom:34px}
+.hero::before{content:"";position:absolute;left:50%;top:50%;width:min(1250px,98vw);height:78%;transform:translate(-50%,-48%);background:radial-gradient(closest-side,rgba(6,10,34,.66),rgba(6,10,34,.38) 62%,transparent);z-index:-1;pointer-events:none}
+.hero h1{font-size:clamp(54px,min(10.6vw,19vh),210px);line-height:.92;margin-top:26px;text-shadow:0 6px 50px rgba(6,10,34,.7)}
+.hero h1 .ln{display:block}
+.hero h1 .ln>span{display:inline-block;opacity:0;transform:translateY(38%);filter:blur(10px);animation:up 1.6s cubic-bezier(.2,.75,.15,1) forwards}
+.hero h1 .ln:nth-child(2)>span{animation-delay:.25s}
+@keyframes up{to{transform:none;opacity:1;filter:none}}
+.hero .kick{opacity:0;animation:fade 1.4s .9s forwards;color:var(--bone);text-shadow:0 1px 12px rgba(6,10,34,1),0 0 3px rgba(6,10,34,1)}
+.hero .lead{margin:30px auto 36px;opacity:0;animation:fade 1.4s 1.2s forwards;color:var(--bone);font-weight:500;font-size:clamp(17px,1.35vw,20px);text-shadow:0 2px 18px rgba(6,10,34,1),0 0 4px rgba(6,10,34,1)}
+.hero .row{opacity:0;animation:fade 1.4s 1.5s forwards}
+@keyframes fade{to{opacity:1}}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:center}
+.cue{margin-top:5vh;display:flex;flex-direction:column;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase}
+.cue i{width:1px;height:46px;background:linear-gradient(var(--bone),transparent);animation:drip 2.4s ease-in-out infinite}
+@keyframes drip{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* ---- pinned scenes ---- */
+.pin{position:relative}
+.stick{position:sticky;top:0;height:100vh;padding-top:64px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 var(--pad);overflow:hidden}
+.words{font-family:var(--serif);font-weight:300;font-size:clamp(34px,4.7vw,84px);line-height:1.12;max-width:1400px;text-align:center}
+.words span{color:#3e4d92;transition:color .3s}
+.words span.on{color:var(--bone)}
+.words span.hot{font-style:italic}
+.words span.hot.on{color:var(--ember2)}
+
+.views{width:100%;max-width:1180px}
+.vlabels{display:flex;justify-content:center;gap:clamp(14px,3vw,48px);font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);margin-bottom:44px;flex-wrap:wrap}
+.vlabels b{font-weight:400;transition:color .4s}
+.vlabels b.on{color:var(--ember2)}
+.vrow{display:grid;grid-template-columns:170px 1fr;gap:24px;align-items:center;padding:16px 0;border-top:1px solid var(--line);font-family:var(--mono);font-size:clamp(15px,1.5vw,24px)}
+.vrow:last-child{border-bottom:1px solid var(--line)}
+.vrow>span:first-child{font-size:12px;letter-spacing:.2em;color:var(--faint)}
+.vcell{position:relative;min-height:1.4em}
+.vcell .pub,.vcell .own{position:absolute;inset:0;display:flex;align-items:center;transition:opacity .5s}
+.vcell .bar{position:absolute;left:0;top:50%;height:.9em;transform:translateY(-50%) scaleX(0);transform-origin:left;width:min(520px,70%);background:repeating-linear-gradient(90deg,rgba(255,180,138,.75) 0 10px,rgba(255,180,138,.35) 10px 14px)}
+.vcell .own{color:var(--ember2);font-style:normal}
+.vcap{margin-top:40px;font-family:var(--serif);font-size:clamp(24px,2.4vw,40px);font-style:italic;color:var(--muted);text-align:center;min-height:1.3em;transition:opacity .4s}
+
+/* ---- below the line ---- */
+.board{display:flex;justify-content:center;align-items:flex-end;gap:clamp(30px,7vw,140px);flex-wrap:wrap;margin-top:70px}
+.board div{text-align:center}
+.board b{display:block;font-family:var(--serif);font-weight:300;font-size:clamp(72px,9vw,170px);line-height:.9}
+.board span{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.live{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.2em}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ember);box-shadow:0 0 12px var(--ember);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.feed{list-style:none;font-family:var(--mono);font-size:14px;max-width:1100px;margin:60px auto 0}
+.feed li{display:grid;grid-template-columns:200px 110px 1fr;gap:18px;padding:14px 0;border-top:1px dashed var(--line);align-items:center}
+.feed li .bar{height:10px;background:repeating-linear-gradient(90deg,rgba(241,231,216,.55) 0 7px,transparent 7px 11px);opacity:.5}
+.feed li.g .bar{background:repeating-linear-gradient(90deg,rgba(255,123,66,.75) 0 2px,transparent 2px 8px)}
+.feed .k{color:var(--ember2)}
+.empty{color:var(--faint);font-family:var(--mono);font-size:13px;padding:18px 0;border-top:1px dashed var(--line);text-align:center}
+
+/* ---- horizontal slides ---- */
+.hpin{position:relative;height:420vh}
+.hstick{position:sticky;top:0;height:100vh;overflow:hidden}
+.track{display:flex;height:100%;width:400vw;will-change:transform}
+.slide{position:relative;width:100vw;height:100%;display:flex;align-items:center;padding:0 calc(var(--pad) + 40px);overflow:hidden}
+.slide .num{position:absolute;right:6vw;bottom:-6vh;font-family:var(--serif);font-weight:300;font-size:clamp(220px,34vw,620px);line-height:.8;color:transparent;-webkit-text-stroke:1px rgba(241,231,216,.18);pointer-events:none;user-select:none}
+.slide .body{position:relative;max-width:820px}
+.slide h3{font-size:clamp(52px,7vw,128px);line-height:.95;margin:22px 0 28px}
+.slide p{font-size:clamp(17px,1.4vw,21px);color:var(--muted);max-width:620px}
+.slide .tint{position:absolute;inset:0;pointer-events:none}
+.hprog{position:absolute;left:calc(var(--pad) + 40px);right:calc(var(--pad) + 40px);bottom:46px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+.hprog::before{content:"";position:absolute;left:0;right:0;top:-16px;height:1px;background:var(--line2)}
+.hprog::after{content:"";position:absolute;left:0;top:-17px;height:3px;width:calc(var(--hp,0) * 100%);background:var(--ember)}
+.hprog b{font-weight:400;transition:color .3s}
+.hprog b.on{color:var(--ember2)}
+.creed{max-width:1200px;margin:0 auto}
+.creed li{list-style:none;display:grid;grid-template-columns:170px 1fr;gap:28px;align-items:baseline;padding:26px 0;border-top:1px solid var(--line);font-family:var(--serif);font-weight:300;font-size:clamp(24px,2.5vw,42px);line-height:1.2}
+.creed li:last-child{border-bottom:1px solid var(--line)}
+.creed li span{font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;color:var(--ember2)}
+.creed li span.n{color:var(--faint)}
+
+/* ---- vault ---- */
+.panel{background:rgba(8,14,44,.93);border:1px solid rgba(150,175,255,.16);box-shadow:0 40px 140px -50px rgba(61,107,255,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.gate{max-width:820px;margin:60px auto 0;padding:56px;text-align:center}
+.gate h3{font-size:clamp(36px,3.4vw,58px)}
+.gate p{color:var(--muted);margin:18px auto 30px;max-width:520px}
+.note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:20px;line-height:1.7}
+.msg{font-family:var(--mono);font-size:12.5px;margin-top:16px;min-height:1em}
+.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+.who{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:60px auto 0;max-width:1400px;padding:16px 22px}
+.who code{font-family:var(--mono);font-size:13.5px}
+.who .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+form.band{max-width:1400px;margin:22px auto 0;padding:30px 30px 26px}
+.band .fields{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr auto;gap:18px;align-items:end}
+.band h3{font-size:34px;margin-bottom:6px}
+label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+input,select{width:100%;margin-top:8px;background:transparent;border:0;border-bottom:1px solid var(--line2);padding:10px 0;font-family:var(--mono);font-size:16px;outline:none;border-radius:0}
+input:focus,select:focus{border-bottom-color:var(--ember)}
+select option{background:var(--night)}
+.grants{display:flex;flex-direction:column;gap:16px;max-width:1400px;margin:22px auto 0}
+.grant{padding:26px 30px}
+.ghead{display:flex;justify-content:space-between;gap:14px;align-items:baseline;flex-wrap:wrap}
+.ghead h3{font-size:36px}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:3px 10px;border:1px solid currentColor}
+.chip.active{color:var(--ok)}.chip.paused{color:var(--ember2)}.chip.revoked,.chip.expired{color:var(--bad)}
+.meter{height:3px;background:var(--line);margin:20px 0 14px;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--ember);box-shadow:0 0 12px var(--ember)}
+.gmeta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.gmeta b{display:block;color:var(--bone);font-weight:500;font-size:15px}
+.gact{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.keybox{margin-top:20px;padding:18px;border:1px solid var(--ember);background:rgba(255,123,66,.08)}
+.keybox code{display:block;font-family:var(--mono);font-size:13px;word-break:break-all;margin:10px 0 14px}
+.keybox p{font-size:13.5px;color:var(--ember2)}
+.ledger{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.ltop{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:8px}
+.tbl{width:100%;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;min-width:680px}
+th{text-align:left;font-weight:500;color:var(--faint);letter-spacing:.06em;font-size:11px;text-transform:uppercase;padding:8px 10px 8px 0;border-bottom:1px solid var(--line)}
+td{padding:10px 10px 10px 0;border-bottom:1px dashed var(--line);vertical-align:top;word-break:break-word}
+td.amt{color:var(--ember2);white-space:nowrap}
+.none{color:var(--faint);font-family:var(--mono);font-size:13px;padding:22px 0}
+
+/* ---- proof ---- */
+.proofin{display:flex;gap:16px;max-width:1000px;margin:60px auto 0;align-items:flex-end}
+.proofin input{margin:0;font-size:clamp(18px,1.8vw,26px);padding:14px 0}
+.result{max-width:1000px;margin:30px auto 0;padding:30px}
+pre{font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-all;background:rgba(0,0,0,.28);border:1px solid var(--line);padding:18px;margin-top:12px;line-height:1.7}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:8px 16px;font-family:var(--mono);font-size:13px;margin-top:16px}
+.kv dt{color:var(--faint)}
+.kv dd{word-break:break-all}
+
+/* ---- agents ---- */
+.flow{max-width:1200px;margin:70px auto 0}
+.flow .step{display:grid;grid-template-columns:120px 1fr;gap:30px;padding:34px 0;border-top:1px solid var(--line)}
+.flow .step i{font-style:normal;font-family:var(--serif);font-weight:300;font-size:64px;line-height:1;color:var(--ember2)}
+.flow h3{font-size:clamp(30px,3vw,48px);margin-bottom:10px}
+.flow p{color:var(--muted);max-width:760px}
+.ep{display:flex;gap:12px;align-items:baseline;font-family:var(--mono);font-size:15px;margin-top:14px}
+.ep b{color:var(--night);background:var(--ember2);padding:2px 8px;font-weight:500;font-size:11.5px}
+.codebar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}
+code{font-family:var(--mono);font-size:.92em}
+
+/* ---- faq ---- */
+.faq{max-width:1200px;margin:70px auto 0;border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:30px 60px 30px 0;font-family:var(--serif);font-weight:300;font-size:clamp(26px,2.6vw,44px);position:relative;transition:color .3s}
+summary:hover{color:var(--ember2)}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";position:absolute;right:8px;top:50%;width:12px;height:12px;border-right:1.5px solid var(--ember);border-bottom:1.5px solid var(--ember);transform:translateY(-70%) rotate(45deg);transition:transform .3s}
+details[open] summary::after{transform:translateY(-30%) rotate(-135deg)}
+details p{color:var(--muted);padding:0 60px 30px 0;max-width:820px;font-size:17px}
+
+/* ---- end ---- */
+.end{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-top:20vh}
+.verse{font-family:var(--serif);font-weight:300;font-size:clamp(48px,7vw,130px);line-height:.98}
+.verse em{display:block;font-style:italic;color:var(--ember2)}
+.about{max-width:760px;margin:60px auto 0}
+.about p{color:var(--muted);font-size:17px;margin-bottom:16px}
+footer{width:100%;margin-top:16vh;padding:26px 0 34px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;z-index:70;background:var(--bone);color:var(--night);font-family:var(--mono);font-size:13px;padding:10px 16px;transition:.25s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---- composer ---- */
+.composer{position:relative;max-width:1400px;margin:60px auto 0;padding:34px 40px 36px;text-align:left;overflow:hidden;border-top-color:rgba(255,123,66,.55)}
+.composer::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(55% 70% at 50% 42%,rgba(255,123,66,.16),transparent 70%),radial-gradient(45% 60% at 0% 0%,rgba(61,107,255,.22),transparent 70%),radial-gradient(40% 50% at 100% 100%,rgba(61,107,255,.16),transparent 70%)}
+.composer>*{position:relative}
+#dial{display:block;width:100%;max-width:1100px;margin:0 auto;height:auto}
+#arcDaily,#arcCall{transition:d .25s}
+#arcDaily{filter:drop-shadow(0 0 8px rgba(255,123,66,.7))}#arcCall{filter:drop-shadow(0 0 8px rgba(92,132,255,.8))}
+.legend{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:14px}
+.legend b{font-weight:500;color:var(--bone);margin-left:6px}
+.legend i{display:inline-block;width:24px;height:3px;margin-right:10px;vertical-align:middle}
+.legend .lb{background:repeating-linear-gradient(90deg,var(--bone) 0 3px,transparent 3px 8px)}.legend .ld{background:var(--ember);box-shadow:0 0 8px var(--ember)}.legend .lc{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.derived{display:flex;justify-content:center;gap:clamp(30px,8vw,140px);flex-wrap:wrap;margin:36px 0 4px;text-align:center}
+.derived b{display:block;font-family:var(--serif);font-weight:300;font-size:clamp(46px,5.4vw,92px);line-height:1}
+.derived div:nth-child(1) b{color:var(--blue2)}.derived div:nth-child(2) b{color:var(--ember2)}
+.derived span{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.composer .fields{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:28px;margin-top:36px;padding-top:30px;border-top:1px solid var(--line)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;margin-top:20px;padding:0;border:0;background:linear-gradient(90deg,rgba(255,123,66,.7),rgba(241,231,216,.2));cursor:pointer}
+input[type=range].r-blue{background:linear-gradient(90deg,rgba(92,132,255,.8),rgba(241,231,216,.2))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--ember);box-shadow:0 0 16px var(--ember);border:2px solid #0b1238}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--ember);box-shadow:0 0 16px var(--ember);border:2px solid #0b1238}
+input[type=range].r-blue::-webkit-slider-thumb{background:var(--blue);box-shadow:0 0 16px var(--blue)}
+input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0 16px var(--blue)}
+.signwrap{margin-top:34px}
+.signwrap pre{color:var(--blue2);border-color:rgba(150,175,255,.18);background:rgba(4,8,30,.55)}
+.signbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:18px}
+.signbar .btn{min-width:240px}
+.tool{margin-top:16vh}
+.h3{font-size:clamp(38px,4.4vw,76px);line-height:1;margin-top:18px}
+.kick.b{color:var(--blue2)}
+.board div:nth-child(2) b{color:var(--ember2)}.board div:nth-child(3) b{color:var(--blue2)}
+.vcell .pub{color:var(--blue2)}
+.feed li .bar{background:repeating-linear-gradient(90deg,rgba(92,132,255,.85) 0 7px,transparent 7px 11px);opacity:.7}
+.slide .num{-webkit-text-stroke:1px rgba(124,154,255,.3)}
+.creed li span.n{color:var(--blue2)}
+.index a:hover{color:var(--blue2)}
+.btn:not(.sun):hover{border-color:var(--blue2);color:var(--blue2)}
+.h2{text-shadow:0 0 80px rgba(61,107,255,.35)}
+.ep b{background:var(--blue2)}
+
+/* ---- tiers / allowlist / anchors ---- */
+.allowrow{margin-top:26px}
+.allowrow .note{margin-top:8px}
+.chip.holder{color:var(--blue2);border-color:var(--blue2)}
+.tierline{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:6px}
+.gline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.gline a{color:var(--blue2)}
+.kv a{color:var(--blue2)}
+.btn.blue{border-color:rgba(92,132,255,.7);color:var(--blue2)}
+.tiers{margin-top:60px}
+.lead b{color:var(--ember2);font-weight:600}
+
+@media (max-height:800px) and (min-width:821px){
+  .vrow{padding:9px 0;font-size:clamp(14px,1.25vw,19px)}.vlabels{margin-bottom:22px}.vcap{margin-top:20px;font-size:26px}
+  .words{font-size:clamp(30px,3.9vw,62px)}.slide h3{font-size:clamp(44px,6vw,96px);margin:16px 0 20px}.board b{font-size:clamp(60px,7vw,120px)}
+  .hprog{bottom:28px}
+}
+@media (max-width:1100px){
+  .composer .fields{grid-template-columns:1fr 1fr}.composer .fields>div:first-child{grid-column:1/-1}
+  .band .fields{grid-template-columns:1fr 1fr 1fr}
+  .band .fields .go{grid-column:1/-1}
+}
+@media (max-width:820px){
+  :root{--pad:20px}
+  .top{gap:10px;flex-wrap:wrap}
+  .mark b{font-size:20px}
+  .ca{order:5;flex-basis:100%;max-width:none;margin:0}
+  .menu{display:inline-flex}
+  .index{top:0;left:0;right:0;transform:translateY(-105%);align-items:stretch;background:#0e0b22;border-bottom:1px solid var(--line);padding:84px 24px 22px;transition:transform .35s;z-index:38}
+  .index.open{transform:none}
+  .index a{justify-content:flex-start;padding:10px 0}.index a span{opacity:1;transform:none;font-size:24px}
+  .mist{transform:none!important}
+  .spaced{padding-top:16vh}
+  .vrow{grid-template-columns:1fr;gap:6px}
+  .feed li{grid-template-columns:1fr 80px}.feed li .bar{grid-column:1/-1}
+  .hpin{height:auto}.hstick{position:relative;height:auto}
+  .track{flex-direction:column;width:100%;transform:none!important}
+  .slide{width:100%;height:auto;min-height:80vh;padding:12vh 20px}
+  .hprog{display:none}
+  .creed li{grid-template-columns:1fr;gap:6px}
+  .band .fields{grid-template-columns:1fr}
+  .composer{padding:24px 18px}.composer .fields{grid-template-columns:1fr}.signbar .btn{width:100%}.legend{gap:14px 22px}
+  .gmeta{grid-template-columns:1fr 1fr}
+  .kv{grid-template-columns:1fr}
+  .proofin{flex-direction:column;align-items:stretch}
+  .flow .step{grid-template-columns:1fr;gap:10px}
+  .gate{padding:34px 22px}
+  .glowcur{display:none}
+  .cue{display:none}
+  #sky{opacity:.42}
+  .hero .lead{text-shadow:0 1px 14px rgba(10,8,24,1),0 0 3px rgba(10,8,24,.9)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none;clip-path:none}.hl{transform:none}.mark .arc{stroke-dashoffset:0}.hero h1 .ln>span{transform:none;opacity:1;filter:none}.hero .kick,.hero .lead,.hero .row{opacity:1}}
+</style>
+</head>
+<body>
+<div id="skygrad" aria-hidden="true"></div>
+<canvas id="stars" aria-hidden="true"></canvas>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="mist m2" aria-hidden="true"></div>
+<div class="mist m1" aria-hidden="true"></div>
+<div class="glowcur" id="glowcur" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top" id="top">
+  <a class="mark" href="#home" aria-label="DUSK home">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><path class="arc" d="M15 40 A17 17 0 0 1 30.2 23.1 M33.8 23.1 A17 17 0 0 1 49 40" fill="none" stroke="#ff7b42" stroke-width="2"/><path class="hz" d="M6 40 Q32 39.2 58 40 Q32 40.8 6 40Z" fill="#f1e7d8"/><path class="blade" d="M32 3 L34.2 40 L32 61 L29.8 40 Z" fill="#f1e7d8"/><rect x="30.3" y="38.3" width="3.4" height="3.4" transform="rotate(45 32 40)" fill="#0e0b22" stroke="#f1e7d8" stroke-width=".9"/></svg>
+    <b>DUSK</b>
+  </a>
+  <div class="ca" id="caBar"><span>$DUSK CA</span><code id="caText"></code><button class="btn sm" id="caCopy" type="button">Copy</button></div>
+  <div class="spacer"></div>
+  <button class="btn xbtn menu" id="menuBtn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 7h18v1.6H3zM3 15.4h18V17H3z"/></svg></button>
+  <a class="btn xbtn" id="xLink" href="#" target="_blank" rel="noopener" aria-label="DUSK on X"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L1 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L6.3 3.9H4.5L17.8 20z"/></svg></a>
+</header>
+
+<nav class="index" id="index" aria-label="Sections">
+  <a href="#home" data-p="home"><span>Overview</span><i></i></a>
+  <a href="#vault" data-p="vault"><span>Vault</span><i></i></a>
+  <a href="#why" data-p="why"><span>Why</span><i></i></a>
+  <a href="#how" data-p="how"><span>Mechanism</span><i></i></a>
+  <a href="#token" data-p="token"><span>$DUSK</span><i></i></a>
+  <a href="#proof" data-p="proof"><span>Proof</span><i></i></a>
+  <a href="#agents" data-p="agents"><span>For agents</span><i></i></a>
+  <a href="#faq" data-p="faq"><span>Questions</span><i></i></a>
+  <a href="#about" data-p="about"><span>About</span><i></i></a>
+</nav>
+
+<main id="main">
+  <!-- OVERVIEW -->
+  <section class="page" id="p-home">
+    <div class="scene hero">
+      <p class="kick">Private spending for AI agents · Robinhood Chain</p>
+      <h1><span class="ln"><span>Spent in silence.</span></span><span class="ln"><span><em>Bound by proof.</em></span></span></h1>
+      <p class="lead">Draw your agent's limits once, with a signature. It spends inside them, call by call. Every payment is sealed, readable only by your wallet.</p>
+      <div class="row"><a class="btn sun" href="#vault">Draw a grant</a><a class="btn" href="#how">How it works</a></div>
+      <div class="cue" aria-hidden="true"><span>Scroll · the sun is setting</span><i></i></div>
+    </div>
+  </section>
+
+  <!-- VAULT -->
+  <section class="page" id="p-vault">
+    <div class="scene spaced" style="text-align:center;padding-top:14vh">
+      <p class="kick rv">Vault</p>
+      <h2 class="h2 rv" style="margin-top:22px">Draw your <em>limits.</em></h2>
+      <p class="lead center rv" style="margin-top:24px">Move the dials. Below is the exact grant your wallet will sign. Nothing leaves this page until you press sign.</p>
+      <form class="panel composer rv" id="grantForm" autocomplete="off" novalidate>
+        <svg id="dial" viewBox="0 0 1200 350" aria-hidden="true">
+          <defs>
+            <pattern id="ht" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3" fill="#ff7b42"/></pattern>
+            <radialGradient id="sunfade"><stop offset="0" stop-color="#fff"/><stop offset=".72" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+            <mask id="sunmask"><circle id="sunMaskC" cx="600" cy="330" r="120" fill="url(#sunfade)"/></mask>
+          </defs>
+          <rect x="0" y="0" width="1200" height="330" fill="url(#ht)" mask="url(#sunmask)"/>
+          <path d="M 310 330 A 290 290 0 0 1 890 330" fill="none" stroke="rgba(241,231,216,.5)" stroke-width="2" stroke-dasharray="2 8"/>
+          <path id="arcDaily" fill="none" stroke="#ff7b42" stroke-width="9" stroke-linecap="round"/>
+          <path id="arcCall" fill="none" stroke="#5c84ff" stroke-width="9" stroke-linecap="round"/>
+          <line x1="20" y1="330" x2="1180" y2="330" stroke="#f1e7d8" stroke-opacity=".75"/>
+          <rect x="592" y="322" width="16" height="16" transform="rotate(45 600 330)" fill="#0b1238" stroke="#f1e7d8" stroke-width="1.5"/>
+        </svg>
+        <div class="legend"><span><i class="lb"></i>Budget <b id="lgB">—</b></span><span><i class="ld"></i>Per day <b id="lgD">—</b></span><span><i class="lc"></i>Per call <b id="lgC">—</b></span></div>
+        <div class="derived">
+          <div><b id="dCalls">—</b><span>max paid calls a day</span></div>
+          <div><b id="dDays">—</b><span>days minimum, at the daily cap</span></div>
+          <div><b id="dExp">—</b><span>grant expires</span></div>
+        </div>
+        <div class="fields">
+          <div><label for="fName">Agent name · sealed</label><input id="fName" maxlength="48" placeholder="research-agent"></div>
+          <div><label for="fBudget">Budget · USDC</label><input id="fBudget" inputmode="decimal" value="50"><input type="range" id="rBudget" min="0" max="1000" aria-label="Budget slider"></div>
+          <div><label for="fDaily">Max per day</label><input id="fDaily" inputmode="decimal" value="10"><input type="range" id="rDaily" min="0" max="1000" aria-label="Max per day slider"></div>
+          <div><label for="fCall">Max per call</label><input id="fCall" inputmode="decimal" value="0.05"><input type="range" class="r-blue" id="rCall" min="0" max="1000" aria-label="Max per call slider"></div>
+          <div><label for="fExp">Expires in</label><select id="fExp"><option value="1">1 day</option><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option><option value="365">365 days</option></select></div>
+        </div>
+        <div class="allowrow">
+          <label for="fAllow">Private allowlist · $DUSK holders · optional</label>
+          <input id="fAllow" placeholder="api.vendor.dev, data.example.com" autocomplete="off">
+          <p class="note">Your agent can only pay these sellers. DUSK enforces the list on every call without ever learning the names.</p>
+        </div>
+        <div class="signwrap">
+          <label>What your wallet signs</label>
+          <pre id="sigPreview"></pre>
+          <div class="signbar"><span class="note" style="margin:0">A signature, not a transaction. No gas, nothing on-chain.</span><button class="btn sun" type="submit" id="grantBtn">Connect &amp; sign</button></div>
+          <div class="msg" id="grantMsg"></div>
+          <div id="newKey"></div>
+        </div>
+      </form>
+      <div id="gate" class="panel gate rv">
+        <h3>Your <em>grants</em></h3>
+        <p>Connect the wallet you sign with to open your vault: grants, agent keys and sealed ledgers. Two signatures, no gas.</p>
+        <button class="btn" id="connectBtn" type="button">Connect wallet</button>
+        <div class="msg" id="gateMsg"></div>
+        <p class="note">MetaMask, Rabby, Coinbase Wallet or any EVM browser wallet. Same address format as on Robinhood Chain.</p>
+      </div>
+      <div id="app" hidden style="text-align:left">
+        <div class="panel who"><span class="dot"></span><code id="whoAddr"></code><span id="tierLine" class="tierline"></span><span class="spacer"></span><button class="btn sm" id="refreshBtn" type="button">Refresh</button><button class="btn sm" id="discBtn" type="button">Disconnect</button></div>
+        <div class="grants" id="grants"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="p-why">
+
+    <div class="pin" id="pinWords" style="height:220vh">
+      <div class="stick">
+        <p class="kick" style="margin-bottom:40px">The problem</p>
+        <p class="words" id="words">Your agents have started paying. For data, for search, for compute. Every call is a payment, and every payment leaves a *trace.* On-chain, *anyone* can follow it.</p>
+      </div>
+    </div>
+
+    <div class="pin" id="pinViews" style="height:320vh">
+      <div class="stick">
+        <div class="views">
+          <div class="vlabels"><b data-v="0">What everyone sees</b><b data-v="1">What DUSK seals</b><b data-v="2">What your wallet opens</b></div>
+          <div class="vrow"><span>FROM</span><div class="vcell"><span class="pub">agent wallet</span></div></div>
+          <div class="vrow"><span>TO</span><div class="vcell"><span class="pub">seller wallet</span></div></div>
+          <div class="vrow"><span>AMOUNT</span><div class="vcell"><span class="pub">public, on-chain</span></div></div>
+          <div class="vrow"><span>SELLER</span><div class="vcell"><span class="pub">—</span><i class="bar"></i><span class="own">who it paid</span></div></div>
+          <div class="vrow"><span>REQUEST</span><div class="vcell"><span class="pub">—</span><i class="bar"></i><span class="own">what it asked for</span></div></div>
+          <div class="vrow"><span>NOTE</span><div class="vcell"><span class="pub">—</span><i class="bar"></i><span class="own">why it paid</span></div></div>
+          <div class="vrow"><span>GRANT</span><div class="vcell"><span class="pub">—</span><i class="bar"></i><span class="own">which limit it spent from</span></div></div>
+          <p class="vcap" id="vcap"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene spaced" style="text-align:center">
+      <div class="hl"></div>
+      <p class="kick rv">Below the line</p>
+      <h2 class="h2 rv" style="margin-top:22px">Live, and <em>sealed.</em></h2>
+      <div class="board">
+        <div class="rv"><b id="sVolume" data-count>0</b><span>USDC settled under grants</span></div>
+        <div class="rv"><b id="sPays" data-count>0</b><span>sealed payments</span></div>
+        <div class="rv"><b id="hGrants" data-count>0</b><span>grants signed</span></div>
+        <div class="rv"><b id="sOwners" data-count>0</b><span>owners with a vault</span></div>
+      </div>
+      <div style="margin-top:60px" class="rv"><span class="live">LIVE FEED · CONTENT SEALED</span></div>
+      <ul class="feed rv" id="feed"></ul>
+      <span id="hPays" hidden></span>
+    </div>
+  </section>
+
+  <!-- MECHANISM -->
+  <section class="page" id="p-how">
+    <div class="scene spaced" style="text-align:center;padding-bottom:4vh">
+      <div class="hl"></div>
+      <p class="kick rv">Mechanism</p>
+      <h2 class="h2 rv" style="margin-top:22px">Four moments,<br><em>from light to dark.</em></h2>
+      <p class="lead center rv" style="margin-top:28px">DUSK sits between your agent and every payment it makes. It never holds funds. It decides, then it seals.</p>
+    </div>
+    <div class="hpin" id="hpin">
+      <div class="hstick">
+        <div class="track" id="track">
+          <article class="slide"><span class="num">01</span><div class="body"><p class="kick">Golden hour</p><h3>Sign the <em>grant.</em></h3><p>You set a budget, a per-call cap, a daily cap and an expiry, then sign them with your wallet. A signature, not a transaction: no gas, nothing on-chain.</p></div></article>
+          <article class="slide"><span class="num">02</span><div class="body"><p class="kick">Sunset</p><h3>Hand over <em>the key.</em></h3><p>Your browser creates the agent key and a sealing key. DUSK keeps only a hash of the key, and a copy of the sealing key locked to your wallet.</p></div></article>
+          <article class="slide"><span class="num">03</span><div class="body"><p class="kick">Civil dusk</p><h3>Spend within <em>bounds.</em></h3><p>Before each payment the agent asks DUSK. Over a cap, past expiry, paused or revoked: refused. Inside the bounds: approved with a receipt.</p></div></article>
+          <article class="slide"><span class="num">04</span><div class="body"><p class="kick">Nautical dusk</p><h3>Read in <em>the dark.</em></h3><p>Each approved payment is sealed with the agent's key and chained to the previous one by hash. Only your wallet unlocks the ledger.</p></div></article>
+        </div>
+        <div class="hprog" id="hprog"><b>Golden hour</b><b>Sunset</b><b>Civil dusk</b><b>Nautical dusk</b></div>
+      </div>
+    </div>
+    <div class="scene spaced">
+      <ul class="creed">
+        <li class="rv"><span class="n">NEVER SEES</span>Your vault key. It is derived from a signature, inside your browser.</li>
+        <li class="rv"><span class="n">NEVER SEES</span>Who your agent paid, what it asked for, why.</li>
+        <li class="rv"><span class="n">NEVER HOLDS</span>Your funds. Your agent pays from its own wallet.</li>
+        <li class="rv"><span>ENFORCES</span>Budget, per-call cap and daily cap, on every call.</li>
+        <li class="rv"><span>ENFORCES</span>Expiry, pause and revoke, from the very next call.</li>
+        <li class="rv"><span>KEEPS</span>An append-only ledger. Each entry carries the hash of the one before.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- TOKEN -->
+  <section class="page" id="p-token">
+    <div class="scene spaced">
+      <div class="hl"></div>
+      <div style="text-align:center">
+        <p class="kick rv">$DUSK</p>
+        <h2 class="h2 rv" style="margin-top:22px">Hold the <em>dusk.</em></h2>
+        <p class="lead center rv" style="margin-top:28px">Every vault gets signed grants, enforced limits and a sealed ledger. Hold <b data-tmin>100,000</b> $DUSK in the wallet you sign with, and DUSK goes further. Checked live on Robinhood Chain.</p>
+      </div>
+      <ul class="creed tiers">
+        <li class="rv"><span class="n">EVERY VAULT</span>Three active grants, every cap enforced, every payment sealed and chained.</li>
+        <li class="rv"><span>HOLDERS</span>Up to fifty active grants: one per agent, one per task.</li>
+        <li class="rv"><span>HOLDERS</span>Private allowlists. Your agent can only pay the sellers you listed. DUSK enforces the list without ever learning a name.</li>
+        <li class="rv"><span>HOLDERS</span>On-chain anchors. Pin your ledger's hash on Robinhood Chain. Once anchored, no one can rewrite your history, us included.</li>
+      </ul>
+      <p class="note rv" id="tierOpen" style="text-align:center;margin-top:30px">Until $DUSK is live, every vault gets the holder tier.</p>
+    </div>
+  </section>
+
+  <!-- PROOF -->
+  <section class="page" id="p-proof">
+    <div class="scene spaced" style="text-align:center">
+      <div class="hl"></div>
+      <p class="kick rv">Proof</p>
+      <h2 class="h2 rv" style="margin-top:22px">Check a grant<br><em>without trusting us.</em></h2>
+      <p class="lead center rv" style="margin-top:28px">Paste a grant id. Its terms and the owner's signature load from DUSK, then your browser recovers the signer itself.</p>
+      <form class="proofin rv" id="proofForm"><input id="proofId" placeholder="Grant id" maxlength="40" required><button class="btn sun" type="submit">Verify</button></form>
+      <div id="proofOut" style="text-align:left"></div>
+      <div class="tool">
+        <p class="kick b rv">Agent key</p>
+        <h3 class="h3 rv">Check a key's <em>live limits.</em></h3>
+        <p class="lead center rv" style="margin-top:20px">Only the grant id and token are sent. The sealing key never leaves this page.</p>
+        <form class="proofin rv" id="keyForm" autocomplete="off"><input id="keyIn" type="password" placeholder="Agent key" required><button class="btn sun" type="submit">Check</button></form>
+        <div id="keyOut" style="text-align:left"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENTS -->
+  <section class="page" id="p-agents">
+    <div class="scene spaced">
+      <div class="hl"></div>
+      <div style="text-align:center">
+        <p class="kick rv">For agents</p>
+        <h2 class="h2 rv" style="margin-top:22px">Ask first,<br><em>then pay.</em></h2>
+        <p class="lead center rv" style="margin-top:28px">Your agent holds its own wallet. Before every payment it asks DUSK, and pays the seller only when the answer is <code>ok: true</code>.</p>
+      </div>
+      <div class="flow">
+        <div class="step rv"><i>i</i><div><h3>The agent <em>key</em></h3><p>Created in the vault, shown once. Three parts joined by dots: <code>grantId.token.sealingKey</code>. Send only <code>grantId.token</code> as the bearer. The sealing key never leaves your agent.</p></div></div>
+        <div class="step rv"><i>ii</i><div><h3>Two <em>endpoints</em></h3>
+          <div class="ep"><b>GET</b><span>/api/agent</span></div><p>Limits, spent, remaining, remaining today, status.</p>
+          <div class="ep"><b>POST</b><span>/api/spend</span></div><p>Body <code>{ amount, sealed, tag }</code>. Amount is a USDC string, up to 6 decimals. Sealed is AES-GCM ciphertext, base64. Tag is the seller's domain keyed with the sealing key, checked against the grant's private allowlist.</p>
+          <p style="margin-top:12px">Answers: <code>200</code> approved · <code>402</code> over a limit · <code>403</code> paused, revoked, expired or seller not allowed · <code>401</code> bad key · <code>429</code> over 120 calls a minute.</p></div></div>
+        <div class="step rv"><i>iii</i><div style="min-width:0"><h3>Drop-in <em>client</em></h3>
+          <div class="codebar"><span class="note" style="margin:0">Node 18+, Deno, Bun or any browser. No dependencies.</span><button class="btn sm" type="button" data-copy="snippet">Copy</button></div>
+          <pre id="snippet"></pre></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="page" id="p-faq">
+    <div class="scene spaced">
+      <div class="hl"></div>
+      <div style="text-align:center">
+        <p class="kick rv">Questions</p>
+        <h2 class="h2 rv" style="margin-top:22px">Asked <em>after dark.</em></h2>
+      </div>
+      <div class="faq">
+        <details class="rv"><summary>Does DUSK hold my money?</summary><p>No. Your agent pays from its own wallet. DUSK approves or refuses each payment before it happens, then seals the record. Nothing to deposit, nothing to withdraw.</p></details>
+        <details class="rv"><summary>Is anything written on-chain?</summary><p>No. A grant is a wallet signature over its terms. It costs no gas, and anyone can verify it in the Proof section.</p></details>
+        <details class="rv"><summary>Who can read the ledger?</summary><p>Only the wallet that signed the grant. Each entry is sealed with the grant's key, and that key is stored locked to a key derived from your wallet signature in your browser. DUSK stores ciphertext.</p></details>
+        <details class="rv"><summary>What does DUSK see?</summary><p>The amount of each payment, because limits are enforced on it, and its time. Seller, request and note are sealed by your agent before they reach DUSK.</p></details>
+        <details class="rv"><summary>What if a key leaks?</summary><p>Pause or revoke the grant in your vault. It applies to the next call. Revoked is final: sign a new grant and hand over the new key.</p></details>
+        <details class="rv"><summary>Can someone tamper with the ledger?</summary><p>Each entry carries the hash of the one before, starting from a value tied to your signature. Your vault checks the whole chain every time it opens a ledger.</p></details>
+        <details class="rv"><summary>Which wallets work?</summary><p>Any browser wallet that supports personal_sign: MetaMask, Rabby, Coinbase Wallet and others. Your vault key comes from a signature, so use the same wallet each time.</p></details>
+        <details class="rv"><summary>What does $DUSK unlock?</summary><p>Hold the holder amount in the wallet you sign with: up to fifty active grants instead of three, private allowlists and on-chain anchors. DUSK reads your balance on Robinhood Chain when you open your vault and when you create a grant.</p></details>
+        <details class="rv"><summary>How can DUSK enforce an allowlist it cannot read?</summary><p>Your browser turns each seller domain into a tag keyed with the grant's sealing key, which DUSK never has. Your agent computes the same tag before each payment. DUSK only compares tags, so it can refuse a seller without knowing who it is. The list itself is committed in the grant you sign.</p></details>
+        <details class="rv"><summary>What is an anchor?</summary><p>A zero-value transaction from your wallet to itself on Robinhood Chain, carrying your grant id, a ledger position and its hash. Anyone can read it on the explorer. If a single past entry were changed, the hash chain would no longer match the anchor.</p></details>
+        <details class="rv"><summary>What is $DUSK?</summary><p>The token of DUSK on Robinhood Chain. Its contract address is pinned at the top of this page. Always copy it from here or from the official X account.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="page" id="p-about">
+    <div class="scene end">
+      <div class="hl" style="width:100%"></div>
+      <p class="kick rv">About</p>
+      <p class="verse rv" style="margin-top:30px">The sun still sets.<em>No one sees where it went.</em></p>
+      <div class="about rv">
+        <p>Agents are starting to pay for things on their own: data, search, models, compute. Each call is a payment, and each payment says something about what you are working on.</p>
+        <p>DUSK keeps that story yours. You draw the limits once, in a signature. Your agent works inside them. The record of what it did stays sealed until you open it.</p>
+        <p>No custody, no deposits, no transaction to start. A wallet, a signature and a key.</p>
+      </div>
+      <div class="row rv" style="margin-top:40px"><a class="btn sun" href="#vault">Open the vault</a></div>
+      <footer><span>DUSK · Robinhood Chain</span><span id="footX"></span></footer>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/*ECC*/
+</script>
+<script>
+(() => {
+'use strict';
+const CA = '';
+const X_URL = 'https://x.com/DuskAgents';
+const API = /^https?:$/.test(location.protocol) ? '' : 'https://dusk.invalid';
+const MICRO = 1000000;
+const $ = s => document.querySelector(s);
+const enc = new TextEncoder(), dec = new TextDecoder();
+
+/* ---------- helpers ---------- */
+const toast = (t) => { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1800); };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch {} t.remove(); }
+  toast('Copied');
+}
+const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+const b64url = u8 => b64(u8).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const rand = n => crypto.getRandomValues(new Uint8Array(n));
+const hex = u8 => Array.from(u8, b => b.toString(16).padStart(2, '0')).join('');
+async function sha256hex(s) { return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', typeof s === 'string' ? enc.encode(s) : s))); }
+function toMicro(v) {
+  v = String(v).trim();
+  if (!/^\d{1,9}(\.\d{1,6})?$/.test(v)) return null;
+  const [i, f = ''] = v.split('.'); const m = Number(i) * MICRO + Number((f + '000000').slice(0, 6));
+  return Number.isSafeInteger(m) ? m : null;
+}
+function fromMicro(m) { const i = Math.floor(m / MICRO), f = String(m % MICRO).padStart(6, '0').replace(/0+$/, ''); return f ? `${i}.${f}` : String(i); }
+const fmtNum = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+const short = a => a ? a.slice(0, 6) + '…' + a.slice(-4) : '';
+const timeUTC = iso => { const d = new Date(iso); return d.toISOString().replace('T', ' ').slice(0, 19); };
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, { ...opts, headers: { 'content-type': 'application/json', ...(opts.headers || {}) } });
+  let data; try { data = await r.json(); } catch { data = { ok: false, error: 'Unexpected answer from server' }; }
+  if (!r.ok || !data.ok) { const e = new Error(data.error || `Error ${r.status}`); e.status = r.status; throw e; }
+  return data;
+}
+
+/* ---------- CA + X ---------- */
+function showCA(ca) { $('#caText').textContent = ca; $('#caBar').classList.add('on'); $('#caCopy').onclick = () => copy(ca); }
+if (CA) showCA(CA); else fetch(API + '/api/ca').then(r => r.json()).then(d => { if (d && /^0x[0-9a-fA-F]{40}$/.test(d.ca || '')) showCA(d.ca); }).catch(() => {});
+fetch(API + '/api/tier').then(r => r.json()).then(d => { if (!d || !d.ok) return; document.querySelectorAll('[data-tmin]').forEach(e => e.textContent = Number(d.min).toLocaleString('en-US')); const o = $('#tierOpen'); if (o) o.hidden = !!d.gated; }).catch(() => {});
+if (X_URL) { $('#xLink').href = X_URL; $('#footX').innerHTML = `<a href="${esc(X_URL)}" target="_blank" rel="noopener">X</a>`; }
+else { $('#xLink').href = 'https://x.com'; }
+
+/* ---------- navigation ---------- */
+const PAGES = ['home', 'vault', 'why', 'how', 'token', 'proof', 'agents', 'faq', 'about'];
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const narrow = () => innerWidth <= 820;
+function go(hash, smooth = true) {
+  const [id, arg] = hash.replace(/^#/, '').split('/');
+  const el = document.getElementById('p-' + (PAGES.includes(id) ? id : 'home'));
+  if (id === 'proof' && arg) { $('#proofId').value = decodeURIComponent(arg); verify(); }
+  window.scrollTo({ top: id === 'home' ? 0 : el.getBoundingClientRect().top + scrollY, behavior: smooth && !still ? 'smooth' : 'auto' });
+  $('#index').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a || a.getAttribute('href').length < 2) return;
+  e.preventDefault();
+  const h = a.getAttribute('href');
+  history.replaceState(null, '', h);
+  go(h);
+});
+window.addEventListener('hashchange', () => go(location.hash));
+$('#menuBtn').onclick = () => $('#index').classList.toggle('open');
+const navObs = new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.isIntersecting) { const id = en.target.id.slice(2); document.querySelectorAll('#index a').forEach(a => a.classList.toggle('on', a.dataset.p === id)); } });
+}, { rootMargin: '-48% 0px -48% 0px' });
+document.querySelectorAll('.page').forEach(p => navObs.observe(p));
+
+/* ---------- reveals ---------- */
+document.querySelectorAll('.rv').forEach(el => {
+  const sib = [...el.parentElement.children].filter(c => c.classList.contains('rv'));
+  el.style.setProperty('--d', (Math.min(sib.indexOf(el), 6) * 0.1).toFixed(2) + 's');
+});
+const rvObs = new IntersectionObserver(entries => entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); rvObs.unobserve(en.target); } }), { rootMargin: '0px 0px -10% 0px', threshold: 0.06 });
+document.querySelectorAll('.rv, .hl').forEach(el => still ? el.classList.add('in') : rvObs.observe(el));
+let RVP = still ? [] : [...document.querySelectorAll('.rv, .hl')];
+
+/* ---------- counters ---------- */
+const counted = new WeakSet();
+const cntObs = new IntersectionObserver(entries => entries.forEach(en => {
+  if (!en.isIntersecting || counted.has(en.target)) return;
+  counted.add(en.target);
+  const el = en.target, target = parseFloat(el.textContent.replace(/,/g, '')) || 0;
+  if (still || !target) return;
+  const dec = (el.textContent.split('.')[1] || '').length, t0 = performance.now();
+  (function step(now) { const k = Math.min(1, (now - t0) / 1600), v = target * (1 - Math.pow(1 - k, 3)); el.textContent = v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }); if (k < 1) requestAnimationFrame(step); })(t0);
+}), { threshold: 0.6 });
+document.querySelectorAll('[data-count]').forEach(el => cntObs.observe(el));
+
+/* ---------- the words scene ---------- */
+(function () {
+  const p = $('#words');
+  p.innerHTML = p.textContent.trim().split(/\s+/).map(w => { const hot = /^\*.*\*[.,]?$/.test(w); const clean = esc(w.replace(/\*/g, '')); return `<span class="${hot ? 'hot' : ''}">${clean}</span>`; }).join(' ');
+})();
+const WORDS = [...document.querySelectorAll('#words span')];
+const VCAP = ['Public by design: a transfer between two addresses.', 'Sealed by your agent before it ever reaches DUSK.', 'Opened only by the wallet that signed the grant.'];
+const VROWS = [...document.querySelectorAll('.vcell')].filter(c => c.querySelector('.bar'));
+const pinProg = el => { const r = el.getBoundingClientRect(); return Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - innerHeight))); };
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+let vPhase = -1;
+function scenes() {
+  if (RVP.length) { const lim = innerHeight * 0.95; RVP = RVP.filter(el => { if (el.classList.contains('in')) return false; if (el.getBoundingClientRect().top < lim) { el.classList.add('in'); return false; } return true; }); }
+  const pw = pinProg($('#pinWords'));
+  const lit = still ? WORDS.length : Math.floor(clamp(pw * 1.25) * WORDS.length + 0.001);
+  WORDS.forEach((w, i) => w.classList.toggle('on', i < lit));
+  const pv = still ? 1 : pinProg($('#pinViews'));
+  VROWS.forEach((c, i) => {
+    const q1 = clamp((pv - 0.26 - i * 0.03) / 0.18), q2 = clamp((pv - 0.6 - i * 0.03) / 0.16);
+    c.querySelector('.pub').style.opacity = (1 - q1).toFixed(3);
+    const bar = c.querySelector('.bar'); bar.style.transform = `translateY(-50%) scaleX(${q1.toFixed(3)})`; bar.style.opacity = (1 - q2).toFixed(3);
+    c.querySelector('.own').style.opacity = q2.toFixed(3);
+  });
+  const ph = pv < 0.36 ? 0 : pv < 0.68 ? 1 : 2;
+  if (ph !== vPhase) { vPhase = ph; document.querySelectorAll('.vlabels b').forEach(b => b.classList.toggle('on', +b.dataset.v === ph)); $('#vcap').textContent = VCAP[ph]; }
+  const hp = pinProg($('#hpin'));
+  const sg = hp * 3, si = Math.min(2, Math.floor(sg)), sf = sg - si, sm = si + (sf < 0.38 ? 0 : sf > 0.72 ? 1 : (k => k * k * (3 - 2 * k))((sf - 0.38) / 0.34));
+  if (!narrow()) $('#track').style.transform = `translate3d(${(-Math.min(3, sm) * 100).toFixed(3)}vw,0,0)`;
+  $('#hprog').style.setProperty('--hp', hp.toFixed(4));
+  const hi = Math.round(hp * 3);
+  document.querySelectorAll('#hprog b').forEach((b, i) => b.classList.toggle('on', i === hi));
+  $('#top').classList.toggle('scrolled', scrollY > 40);
+}
+
+/* ---------- public data ---------- */
+async function loadPublic() {
+  try {
+    const s = await api('/api/stats');
+    $('#hGrants').textContent = fmtNum(s.grants); $('#hPays').textContent = fmtNum(s.payments);
+    $('#sVolume').textContent = fmtNum(s.volume); $('#sOwners').textContent = fmtNum(s.owners); $('#sPays').textContent = fmtNum(s.payments);
+  } catch {}
+  let feed = [];
+  try { feed = (await api('/api/feed')).feed || []; } catch {}
+  const ul = $('#feed');
+  if (!feed.length) { ul.innerHTML = '<li class="empty" style="display:block">Nothing has crossed the line yet. The first sealed payment shows here.</li>'; return; }
+  ul.innerHTML = feed.slice(0, 12).map(f => `<li class="${f.k === 'grant' ? 'g' : ''}"><span>${esc(timeUTC(f.t))}</span><span class="k">${f.k === 'grant' ? 'grant' : 'payment'}</span><span class="bar" title="sealed"></span></li>`).join('');
+}
+
+/* ---------- wallet + vault ---------- */
+const S = { addr: null, token: null, key: null, grants: [], open: {}, keys: {} };
+function provider() { return window.ethereum || null; }
+const utf8hex = s => '0x' + hex(enc.encode(s));
+async function sign(message) {
+  return await provider().request({ method: 'personal_sign', params: [utf8hex(message), S.addr] });
+}
+const VAULT_MSG = a => `DUSK vault key\n\nThis signature unlocks your sealed ledger on this device.\nIt never leaves your browser and costs no gas.\n\nWallet: ${a}`;
+const LOGIN_MSG = (a, issued, nonce) => `DUSK sign-in\n\nAddress: ${a}\nIssued: ${issued}\nNonce: ${nonce}`;
+function grantMessage(g) {
+  const lines = ['DUSK grant', `Grant: ${g.id}`, `Owner: ${g.owner}`, `Budget: ${g.budget} USDC`, `Per call: ${g.perCall} USDC`, `Daily: ${g.daily} USDC`];
+  if (g.allowHash) lines.push(`Allowlist: ${g.allowHash}`);
+  lines.push(`Expires: ${g.expires}`, `Issued: ${g.issued}`);
+  return lines.join('\n');
+}
+const RH = { chainId: '0x1237', chainName: 'Robinhood Chain', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://rpc.mainnet.chain.robinhood.com'], blockExplorerUrls: ['https://robinhoodchain.blockscout.com'] };
+const EXPLORER = 'https://robinhoodchain.blockscout.com/tx/';
+const anchorData = (id, count, head) => '0x' + hex(enc.encode(`DUSK anchor\n${id}\n${count}\n${head}`));
+const hostOf = s => String(s).trim().toLowerCase().split('://').pop().split('/')[0];
+async function sellerTag(sk, seller) {
+  const k = await crypto.subtle.importKey('raw', sk, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return hex(new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(hostOf(seller)))));
+}
+const parseAllow = () => [...new Set($('#fAllow').value.split(/[\s,]+/).map(hostOf).filter(h => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(h)))];
+function tierLine(t) {
+  if (!t) return '';
+  if (t.error) return `<span class="chip paused">tier unknown</span><span class="note" style="margin:0">${esc(t.error)}</span>`;
+  if (!t.gated) return '<span class="chip holder">holder tier</span><span class="note" style="margin:0">Open to every vault until $DUSK is live.</span>';
+  return t.holder ? `<span class="chip holder">$DUSK holder</span><span class="note" style="margin:0">${Number(t.balance).toLocaleString('en-US')} $DUSK · ${t.grants} active grants · allowlists · anchors</span>`
+    : `<span class="chip paused">free vault</span><span class="note" style="margin:0">${Number(t.balance).toLocaleString('en-US')} $DUSK · hold ${Number(t.min).toLocaleString('en-US')} to unlock 50 grants, allowlists and anchors</span>`;
+}
+async function aesKey(raw) { return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']); }
+async function seal(key, bytes) { const iv = rand(12); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes)); const o = new Uint8Array(12 + ct.length); o.set(iv); o.set(ct, 12); return b64(o); }
+async function unseal(key, s) { const u = unb64(s); return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.slice(0, 12) }, key, u.slice(12))); }
+function walletError(e) {
+  if (!e) return 'Something went wrong';
+  if (e.code === 4001 || /reject|denied|cancel/i.test(e.message || '')) return 'Request cancelled in your wallet.';
+  if (e.status === undefined && /fetch|network|load/i.test(e.message || '')) return 'Cannot reach the DUSK server.';
+  return e.message || 'Something went wrong';
+}
+function setMsg(el, text, kind) { el.textContent = text || ''; el.className = 'msg' + (kind ? ' ' + kind : ''); }
+
+async function connect(m = $('#gateMsg')) {
+  const btn = $('#connectBtn');
+  if (!provider()) { setMsg(m, 'No EVM wallet found in this browser. Install MetaMask or Rabby, then reload.', 'bad'); return false; }
+  btn.disabled = true;
+  try {
+    setMsg(m, 'Waiting for your wallet…');
+    const accs = await provider().request({ method: 'eth_requestAccounts' });
+    if (!accs || !accs[0]) throw new Error('No account selected');
+    S.addr = accs[0].toLowerCase();
+    setMsg(m, 'Signature 1 of 2: unlock your vault key…');
+    const vs = await sign(VAULT_MSG(S.addr));
+    S.key = await aesKey(new Uint8Array(await crypto.subtle.digest('SHA-256', DUSK_ECC.hexToBytes(vs))));
+    setMsg(m, 'Signature 2 of 2: sign in…');
+    const issued = new Date().toISOString(), nonce = b64url(rand(12));
+    const ls = await sign(LOGIN_MSG(S.addr, issued, nonce));
+    const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ address: S.addr, issued, nonce, signature: ls }) });
+    S.token = r.token;
+    const v = await api('/api/vault', { headers: { authorization: 'Bearer ' + S.token } });
+    if (v.check) {
+      try { const t = dec.decode(await unseal(S.key, v.check)); if (t !== 'dusk-vault-ok') throw 0; }
+      catch { S.key = null; throw new Error('This wallet produced a different vault key than before, so your sealed data cannot be opened. Use the same wallet app and account you created your vault with.'); }
+    } else {
+      await api('/api/vault/check', { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify({ check: await seal(S.key, enc.encode('dusk-vault-ok')) }) });
+    }
+    setMsg(m, '');
+    $('#gate').hidden = true; $('#app').hidden = false; $('#whoAddr').textContent = S.addr;
+    compose();
+    S.tier = v.tier; $('#tierLine').innerHTML = tierLine(v.tier);
+    await render(v.grants);
+    return true;
+  } catch (e) {
+    setMsg(m, walletError(e), 'bad');
+    if (!S.token) { S.addr = null; S.key = null; }
+    return false;
+  } finally { btn.disabled = false; }
+}
+async function disconnect() {
+  const t = S.token;
+  Object.assign(S, { addr: null, token: null, key: null, grants: [], open: {}, keys: {} });
+  $('#app').hidden = true; $('#gate').hidden = false; $('#grants').innerHTML = ''; $('#newKey').innerHTML = ''; setMsg($('#gateMsg'), 'Disconnected.', 'ok');
+  compose();
+  if (t) api('/api/logout', { method: 'POST', headers: { authorization: 'Bearer ' + t } }).catch(() => {});
+  try { await provider()?.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }); } catch {}
+}
+async function grantKey(g) {
+  if (S.keys[g.id]) return S.keys[g.id];
+  const raw = await unseal(S.key, g.wrappedKey);
+  return (S.keys[g.id] = await aesKey(raw));
+}
+async function refresh() {
+  try { const v = await api('/api/vault', { headers: { authorization: 'Bearer ' + S.token } }); S.tier = v.tier; $('#tierLine').innerHTML = tierLine(v.tier); await render(v.grants); }
+  catch (e) { if (e.status === 401) { await disconnect(); setMsg($('#gateMsg'), 'Session expired. Connect again.', 'bad'); } else toast(walletError(e)); }
+}
+function statusOf(g) { return g.status === 'active' && Date.parse(g.expires) <= Date.now() ? 'expired' : g.status; }
+async function render(grants) {
+  S.grants = grants;
+  const box = $('#grants');
+  if (!grants.length) { box.innerHTML = '<div class="panel grant"><h3>No grants yet</h3><p class="note" style="margin-top:10px">Draw and sign your first grant above. You will get an agent key to paste into your agent.</p></div>'; return; }
+  const names = await Promise.all(grants.map(async g => { try { return dec.decode(await unseal(S.key, g.encName)); } catch { return 'Sealed grant'; } }));
+  const allows = await Promise.all(grants.map(async g => { if (!g.encAllow) return null; try { return JSON.parse(dec.decode(await unseal(S.key, g.encAllow))); } catch { return ['sealed']; } }));
+  box.innerHTML = grants.map((g, i) => {
+    const st = statusOf(g), pct = Math.min(100, (toMicro(g.spent) / toMicro(g.budget)) * 100 || 0);
+    return `<article class="panel grant" data-id="${esc(g.id)}">
+      <div class="ghead"><h3>${esc(names[i])}</h3><span class="chip ${st}">${st}</span></div>
+      <div class="meter"><i style="width:${pct.toFixed(2)}%"></i></div>
+      <div class="gmeta">
+        <div><b>${esc(g.spent)} / ${esc(g.budget)}</b>spent · USDC</div>
+        <div><b>${esc(g.spentToday)} / ${esc(g.daily)}</b>today</div>
+        <div><b>${esc(g.perCall)}</b>max per call</div>
+        <div><b>${esc(new Date(g.expires).toISOString().slice(0, 10))}</b>expires</div>
+      </div>
+      <div class="gact">
+        <button class="btn sm" data-a="ledger" type="button">${S.open[g.id] ? 'Hide ledger' : 'Open ledger'} (${g.count})</button>
+        ${st === 'active' ? '<button class="btn sm" data-a="paused" type="button">Pause</button>' : ''}
+        ${st === 'paused' ? '<button class="btn sm" data-a="active" type="button">Resume</button>' : ''}
+        ${g.status !== 'revoked' ? '<button class="btn sm" data-a="revoked" type="button">Revoke</button>' : ''}
+        <a class="btn sm" href="#proof/${esc(g.id)}">Proof</a>
+        <button class="btn sm" data-a="copyid" type="button">Copy id</button>
+        <button class="btn sm blue" data-a="anchor" type="button">Anchor on Robinhood Chain</button>
+      </div>
+      ${allows[i] ? `<p class="gline"><span class="chip holder">private allowlist</span>${allows[i].map(esc).join(' · ')}</p>` : ''}
+      ${(g.anchors || []).length ? `<p class="gline"><span class="chip holder">anchored</span>#${g.anchors[0].count} · <a href="${EXPLORER}${esc(g.anchors[0].tx)}" target="_blank" rel="noopener">${esc(g.anchors[0].tx.slice(0, 12))}…</a>${g.anchors.length > 1 ? ` · ${g.anchors.length} anchors` : ''}</p>` : ''}
+      <div class="ledgerwrap"></div>
+    </article>`;
+  }).join('');
+  for (const id of Object.keys(S.open)) if (S.open[id]) loadLedger(id);
+}
+async function loadLedger(id) {
+  const art = document.querySelector(`.grant[data-id="${CSS.escape(id)}"] .ledgerwrap`);
+  if (!art) return;
+  art.innerHTML = '<div class="ledger"><p class="none">Opening…</p></div>';
+  try {
+    const g = S.grants.find(x => x.id === id);
+    const [l, key] = await Promise.all([api(`/api/grants/${id}/ledger`, { headers: { authorization: 'Bearer ' + S.token } }), grantKey(g)]);
+    const asc = [...l.entries].sort((a, b) => a.n - b.n);
+    let intact = true, prev = asc.length && asc[0].n === 1 ? l.genesis : (asc[0] ? asc[0].prev : l.genesis);
+    for (const e of asc) { const h = await sha256hex(`${e.prev}|${e.n}|${e.t}|${e.amount}|${e.sealed}`); if (e.prev !== prev || h !== e.hash) { intact = false; break; } prev = e.hash; }
+    if (asc.length && prev !== l.head) intact = false;
+    const rows = await Promise.all(l.entries.map(async e => {
+      let d = {}; try { d = JSON.parse(dec.decode(await unseal(key, e.sealed))); } catch { d = { seller: '—', request: 'Could not unseal', note: '' }; }
+      return `<tr><td>${e.n}</td><td>${esc(timeUTC(e.t))}</td><td class="amt">${esc(e.amount)}</td><td>${esc(d.seller || '—')}</td><td>${esc(d.request || '—')}</td><td>${esc(d.note || '')}</td><td title="${esc(e.hash)}">${esc(e.hash.slice(0, 10))}…</td></tr>`;
+    }));
+    art.innerHTML = `<div class="ledger"><div class="ltop"><span>${l.count} sealed payment${l.count === 1 ? '' : 's'}${l.count > l.entries.length ? ` · latest ${l.entries.length} shown` : ''}</span><span style="color:${intact ? 'var(--ok)' : 'var(--bad)'}">${intact ? 'Hash chain intact' : 'Hash chain broken'}${(g.anchors || []).length ? ` · anchored at #${g.anchors[0].count}${l.entries.some(e => e.n === g.anchors[0].count && e.hash !== g.anchors[0].head) ? ' · ANCHOR MISMATCH' : ''}` : ''}</span></div>` +
+      (l.entries.length ? `<div class="tbl"><table><thead><tr><th>#</th><th>Time (UTC)</th><th>USDC</th><th>Seller</th><th>Request</th><th>Note</th><th>Hash</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<p class="none">No payments yet. Approved payments appear here, sealed.</p>') + '</div>';
+  } catch (e) { art.innerHTML = `<div class="ledger"><p class="none" style="color:var(--bad)">${esc(walletError(e))}</p></div>`; }
+}
+$('#grants').addEventListener('click', async ev => {
+  const b = ev.target.closest('button[data-a]'); if (!b) return;
+  const id = b.closest('.grant').dataset.id, a = b.dataset.a;
+  if (a === 'copyid') return copy(id);
+  if (a === 'anchor') return anchor(S.grants.find(g => g.id === id), b);
+  if (a === 'ledger') { S.open[id] = !S.open[id]; b.textContent = (S.open[id] ? 'Hide ledger' : 'Open ledger') + ` (${S.grants.find(g => g.id === id).count})`; if (S.open[id]) loadLedger(id); else b.closest('.grant').querySelector('.ledgerwrap').innerHTML = ''; return; }
+  if (a === 'revoked' && !confirm('Revoke this grant? The agent key stops working on its next call. This cannot be undone.')) return;
+  b.disabled = true;
+  try { await api(`/api/grants/${id}/status`, { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify({ status: a }) }); toast(a === 'revoked' ? 'Grant revoked' : a === 'paused' ? 'Grant paused' : 'Grant resumed'); await refresh(); }
+  catch (e) { toast(walletError(e)); b.disabled = false; }
+});
+async function anchor(g, b) {
+  const p = provider(); if (!p || !g) return;
+  if (S.tier && S.tier.gated && !S.tier.holder) { toast(`On-chain anchors are for $DUSK holders (${Number(S.tier.min).toLocaleString('en-US')}+).`); return; }
+  b.disabled = true;
+  try {
+    try { await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: RH.chainId }] }); }
+    catch (e) { if (e && (e.code === 4902 || /unrecognized|not been added|unknown chain|wallet_addEthereumChain/i.test(e.message || ''))) await p.request({ method: 'wallet_addEthereumChain', params: [RH] }); else throw e; }
+    toast('Confirm the anchor in your wallet');
+    const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: S.addr, to: S.addr, value: '0x0', data: anchorData(g.id, g.count, g.head) }] });
+    toast('Anchor sent. Checking it on Robinhood Chain…');
+    await api(`/api/grants/${g.id}/anchor`, { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify({ tx, count: g.count, head: g.head }) });
+    toast('Ledger anchored on Robinhood Chain');
+    await refresh();
+  } catch (e) { toast(walletError(e)); b.disabled = false; }
+}
+$('#grantForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const m = $('#grantMsg'), btn = $('#grantBtn');
+  const name = $('#fName').value.trim();
+  const bm = toMicro($('#fBudget').value), cm = toMicro($('#fCall').value), dm = toMicro($('#fDaily').value);
+  if (!name) return setMsg(m, 'Give your agent a name.', 'bad');
+  if (!bm || !cm || !dm) return setMsg(m, 'Amounts must be positive numbers, up to 6 decimals.', 'bad');
+  if (cm > dm) return setMsg(m, 'Max per call cannot exceed max per day.', 'bad');
+  if (dm > bm) return setMsg(m, 'Max per day cannot exceed the total budget.', 'bad');
+  btn.disabled = true; $('#newKey').innerHTML = '';
+  try {
+    if (!S.token) { setMsg(m, 'Connect your wallet: two signatures, no gas…'); if (!(await connect(m))) return; }
+    const id = b64url(rand(15)), token = b64url(rand(24)), sk = rand(32);
+    const now = Date.now();
+    const g = { id, owner: S.addr, budget: fromMicro(bm), perCall: fromMicro(cm), daily: fromMicro(dm), expires: new Date(now + Number($('#fExp').value) * 86400000).toISOString(), issued: new Date(now).toISOString() };
+    const hosts = parseAllow();
+    if ($('#fAllow').value.trim() && !hosts.length) throw new Error('Allowlist: write seller domains, like api.vendor.dev');
+    if (hosts.length > 32) throw new Error('Allowlist: up to 32 sellers');
+    const t = S.tier || {};
+    if (hosts.length && t.gated && !t.holder) throw new Error(`Private allowlists are for $DUSK holders (${Number(t.min).toLocaleString('en-US')}+ in this wallet).`);
+    if (t.grants && S.grants.filter(x => x.status !== 'revoked').length >= t.grants) throw new Error(t.holder ? `Limit of ${t.grants} active grants. Revoke one first.` : `Free vaults hold 3 active grants. Hold ${Number(t.min).toLocaleString('en-US')} $DUSK for 50.`);
+    const allow = await Promise.all(hosts.map(h => sellerTag(sk, h)));
+    if (allow.length) g.allowHash = await sha256hex([...allow].sort().join(','));
+    setMsg(m, 'Sign the grant in your wallet…');
+    const signature = await sign(grantMessage(g));
+    if (DUSK_ECC.recoverAddress(grantMessage(g), signature) !== S.addr) throw new Error('Signature does not match this wallet');
+    const body = { grant: g, signature, encName: await seal(S.key, enc.encode(name)), wrappedKey: await seal(S.key, sk), tokenHash: await sha256hex(token), allow, encAllow: allow.length ? await seal(S.key, enc.encode(JSON.stringify(hosts))) : '' };
+    await api('/api/grants', { method: 'POST', headers: { authorization: 'Bearer ' + S.token }, body: JSON.stringify(body) });
+    const agentKey = `${id}.${token}.${b64url(sk)}`;
+    setMsg(m, 'Grant signed.', 'ok');
+    $('#newKey').innerHTML = `<div class="keybox"><p>Agent key for ${esc(name)}. Shown once: store it in your agent's secrets now.</p><code id="akey">${esc(agentKey)}</code><button class="btn sm sun" type="button" id="akeyCopy">Copy key</button></div>`;
+    $('#akeyCopy').onclick = () => copy(agentKey);
+    $('#fName').value = ''; $('#fAllow').value = '';
+    await refresh();
+  } catch (e) {
+    if (e.status === 401) { await disconnect(); setMsg($('#gateMsg'), 'Session expired. Connect again.', 'bad'); }
+    else setMsg(m, walletError(e), 'bad');
+  } finally { btn.disabled = false; }
+});
+$('#connectBtn').onclick = () => connect();
+$('#discBtn').onclick = disconnect;
+$('#refreshBtn').onclick = refresh;
+
+/* ---------- composer: draw the limits ---------- */
+const LOGR = { fBudget: [0, 5], fCall: [-3, 3], fDaily: [-2, 4] };
+const AMTS = ['fBudget', 'fDaily', 'fCall'];
+function niceAmt(v) {
+  if (!(v > 0)) return '0.000001';
+  if (v >= 100) return String(Math.round(v));
+  const d = v >= 10 ? 1 : v >= 1 ? 2 : Math.min(6, 2 - Math.floor(Math.log10(v)));
+  return fromMicro(toMicro(v.toFixed(d)) || 1);
+}
+const rng = id => $('#r' + id.slice(1));
+function toRange(id) { const v = parseFloat($('#' + id).value), [lo, hi] = LOGR[id]; if (v > 0) rng(id).value = Math.round(clamp((Math.log10(v) - lo) / (hi - lo)) * 1000); }
+function fromRange(id) { const [lo, hi] = LOGR[id]; return niceAmt(Math.pow(10, lo + (hi - lo) * rng(id).value / 1000)); }
+function arcPath(r, deg) {
+  const a = Math.PI * clamp(deg, 1.2, 180) / 180, cx = 600, cy = 330;
+  return `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${(cx - r * Math.cos(a)).toFixed(2)} ${(cy - r * Math.sin(a)).toFixed(2)}`;
+}
+function compose() {
+  const b = toMicro($('#fBudget').value), d = toMicro($('#fDaily').value), c = toMicro($('#fCall').value), days = Number($('#fExp').value);
+  const ok = b && d && c;
+  $('#arcDaily').setAttribute('d', arcPath(240, ok ? 180 * Math.sqrt(Math.min(1, d / b)) : 0));
+  $('#arcCall').setAttribute('d', arcPath(190, ok ? 180 * Math.sqrt(Math.min(1, c / d)) : 0));
+  $('#sunMaskC').setAttribute('r', (b ? clamp(60 + 34 * Math.log10(Math.max(1, b / MICRO)), 60, 240) : 60).toFixed(1));
+  $('#lgB').textContent = b ? fromMicro(b) : '—'; $('#lgD').textContent = d ? fromMicro(d) : '—'; $('#lgC').textContent = c ? fromMicro(c) : '—';
+  $('#dCalls').textContent = ok ? Math.floor(d / c).toLocaleString('en-US') : '—';
+  $('#dDays').textContent = ok ? Math.ceil(b / d).toLocaleString('en-US') : '—';
+  const exp = new Date(Date.now() + days * 86400000);
+  $('#dExp').textContent = exp.toISOString().slice(0, 10);
+  const al = parseAllow().length;
+  $('#sigPreview').textContent = grantMessage({ allowHash: al ? `(commitment to ${al} sealed seller${al > 1 ? 's' : ''}, computed when you sign)` : '', id: '(created when you sign)', owner: S.addr || '(your wallet)', budget: b ? fromMicro(b) : '?', perCall: c ? fromMicro(c) : '?', daily: d ? fromMicro(d) : '?', expires: exp.toISOString().slice(0, 10) + ' (exact time set when you sign)', issued: '(time of signing)' });
+  $('#grantBtn').textContent = S.token ? 'Sign grant' : 'Connect & sign';
+}
+AMTS.forEach(id => {
+  rng(id).addEventListener('input', () => {
+    $('#' + id).value = fromRange(id);
+    const B = () => toMicro($('#fBudget').value), D = () => toMicro($('#fDaily').value), C = () => toMicro($('#fCall').value);
+    if (D() > B()) $('#fDaily').value = $('#fBudget').value;
+    if (C() > D()) $('#fCall').value = $('#fDaily').value;
+    AMTS.forEach(toRange); compose();
+  });
+  $('#' + id).addEventListener('input', () => { toRange(id); compose(); });
+});
+$('#fExp').addEventListener('change', compose);
+$('#fAllow').addEventListener('input', compose);
+AMTS.forEach(toRange); compose();
+
+/* ---------- agent key check ---------- */
+$('#keyForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const out = $('#keyOut'), parts = $('#keyIn').value.trim().split('.');
+  if (parts.length < 2 || !/^[A-Za-z0-9_-]{16,32}$/.test(parts[0]) || !parts[1]) { out.innerHTML = '<div class="panel result"><p class="msg bad">That is not a DUSK agent key.</p></div>'; return; }
+  out.innerHTML = '<div class="panel result"><p class="note" style="margin:0">Reading limits…</p></div>';
+  try {
+    const r = await api('/api/agent', { headers: { authorization: 'Bearer ' + parts[0] + '.' + parts[1] } });
+    const st = r.status === 'active' && Date.parse(r.expires) <= Date.now() ? 'expired' : r.status;
+    const pct = Math.min(100, (toMicro(r.spent) / toMicro(r.budget)) * 100 || 0);
+    out.innerHTML = `<div class="panel result"><div class="ghead"><h3>Grant ${esc(r.grant.slice(0, 8))}…</h3><span class="chip ${st}">${st}</span></div>
+      <div class="meter"><i style="width:${pct.toFixed(2)}%"></i></div>
+      <div class="gmeta"><div><b>${esc(r.spent)} / ${esc(r.budget)}</b>spent · USDC</div><div><b>${esc(r.remainingToday)}</b>left today of ${esc(r.daily)}</div><div><b>${esc(r.perCall)}</b>max per call</div><div><b>${esc(new Date(r.expires).toISOString().slice(0, 10))}</b>expires</div></div></div>`;
+  } catch (err) { out.innerHTML = `<div class="panel result"><p class="msg bad">${esc(err.status === 401 ? 'This key is not valid.' : walletError(err))}</p></div>`; }
+});
+if (provider() && provider().on) provider().on('accountsChanged', a => { if (S.addr && (!a || !a[0] || a[0].toLowerCase() !== S.addr)) { disconnect(); } });
+
+/* ---------- proof ---------- */
+async function verify() {
+  const id = $('#proofId').value.trim(), out = $('#proofOut');
+  if (!/^[A-Za-z0-9_-]{16,32}$/.test(id)) { out.innerHTML = '<div class="panel result"><p class="msg bad">That is not a grant id.</p></div>'; return; }
+  out.innerHTML = '<div class="panel result"><p class="note" style="margin:0">Loading…</p></div>';
+  try {
+    const r = await api('/api/proof/' + encodeURIComponent(id)), g = r.grant;
+    const msg = grantMessage(g);
+    let signer = '', ok = false;
+    try { signer = DUSK_ECC.recoverAddress(msg, g.signature); ok = signer === g.owner && msg === r.message; } catch {}
+    const st = statusOf(g);
+    out.innerHTML = `<div class="panel result">
+      <h3 style="color:${ok ? 'var(--ok)' : 'var(--bad)'}">${ok ? 'Signature valid' : 'Signature does not match'}</h3>
+      <p class="note">Recovered in your browser from the signed terms below.</p>
+      <dl class="kv"><dt>Owner</dt><dd>${esc(g.owner)}</dd><dt>Recovered signer</dt><dd>${esc(signer || '—')}</dd><dt>Status</dt><dd><span class="chip ${st}">${st}</span></dd><dt>Sealed payments</dt><dd>${g.count}</dd><dt>Ledger head</dt><dd>${esc(g.head)}</dd><dt>Private allowlist</dt><dd>${g.allowCount ? `${g.allowCount} sealed seller${g.allowCount > 1 ? 's' : ''}, committed in the signature` : 'none'}</dd><dt>On-chain anchors</dt><dd>${(g.anchors || []).length ? g.anchors.map(a => `#${a.count} · <a href="${EXPLORER}${esc(a.tx)}" target="_blank" rel="noopener">${esc(a.tx.slice(0, 18))}…</a>`).join('<br>') : 'none yet'}</dd></dl>
+      <pre>${esc(msg)}</pre>
+      <pre>${esc(g.signature)}</pre>
+    </div>`;
+  } catch (e) { out.innerHTML = `<div class="panel result"><p class="msg bad">${esc(walletError(e))}</p></div>`; }
+}
+$('#proofForm').addEventListener('submit', e => { e.preventDefault(); history.replaceState(null, '', '#proof/' + encodeURIComponent($('#proofId').value.trim())); verify(); });
+
+/* ---------- agent snippet ---------- */
+const BASE = /^https?:$/.test(location.protocol) ? location.origin : 'https://YOUR-DUSK-DOMAIN';
+$('#snippet').textContent = `// DUSK agent client
+const DUSK = '${BASE}';
+const KEY = process.env.DUSK_AGENT_KEY; // <grantId>.<token>.<sealingKey>
+
+const [grantId, token, sealingKey] = KEY.split('.');
+const unb64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+async function seal(data) {
+  const key = await crypto.subtle.importKey('raw', unb64(sealingKey), 'AES-GCM', false, ['encrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(data))));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12);
+  return btoa(String.fromCharCode(...out));
+}
+
+// Seller domain keyed with your sealing key: DUSK checks it against a private allowlist without learning it.
+async function tagOf(seller) {
+  const host = String(seller).trim().toLowerCase().split('://').pop().split('/')[0];
+  const key = await crypto.subtle.importKey('raw', unb64(sealingKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(host)));
+  return Array.from(sig, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Ask DUSK before paying. Pay the seller only if ok is true.
+export async function duskSpend({ amount, seller, request, note = '' }) {
+  const res = await fetch(DUSK + '/api/spend', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + grantId + '.' + token },
+    body: JSON.stringify({ amount: String(amount), sealed: await seal({ seller, request, note }), tag: await tagOf(seller) }),
+  });
+  return res.json(); // { ok, receipt, remaining, remainingToday } or { ok: false, error }
+}
+
+export async function duskLimits() {
+  const res = await fetch(DUSK + '/api/agent', { headers: { authorization: 'Bearer ' + grantId + '.' + token } });
+  return res.json();
+}
+
+// const r = await duskSpend({ amount: '0.0025', seller: 'api.vendor.dev/search', request: 'lithium supply 2026' });
+// if (r.ok) { /* send the USDC payment from your agent wallet */ }`;
+document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy($('#' + b.dataset.copy).textContent));
+
+/* ---------- the sky: living gradient, breathing sun, drifting halftone clouds, stars and meteors ---------- */
+(function sky() {
+  const c = $('#sky'), x = c.getContext('2d'), sc = $('#stars'), sx = sc.getContext('2d');
+  const m1 = document.querySelector('.mist.m1'), m2 = document.querySelector('.mist.m2'), root = document.documentElement.style;
+  const KEYS = [
+    [0.00, ['#0c1440', '#1d2f80', '#d0612f', '#101b4c']],
+    [0.22, ['#0a1136', '#18286b', '#9a4635', '#0d1743']],
+    [0.45, ['#080e2c', '#111d52', '#4a2f55', '#0a1238']],
+    [0.70, ['#060a22', '#0c1540', '#1a2154', '#070d2a']],
+    [1.00, ['#04071a', '#070c2a', '#0c1238', '#050819']],
+  ];
+  const hx = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+  const mixc = (a, b, k) => '#' + hx(a).map((v, i) => Math.round(v + (hx(b)[i] - v) * k).toString(16).padStart(2, '0')).join('');
+  let W, H, dpr, step, STARS = [], METEORS = [], starA = 0, P = 0, queued = false, mobile = false, lastT = 0;
+  function size() {
+    dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; mobile = W < 700;
+    for (const cv of [c, sc]) { cv.width = W * dpr; cv.height = H * dpr; }
+    x.setTransform(dpr, 0, 0, dpr, 0, 0); sx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    step = mobile ? 12 : 11;
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    STARS = Array.from({ length: Math.round(W * H / 9000) }, () => ({ x: rnd() * W, y: rnd() * H * 0.78, r: 0.4 + rnd() * rnd() * 1.6, ph: rnd() * 6.28, sp: 0.4 + rnd() * 1.2 }));
+  }
+  const prog = () => { const m = document.documentElement.scrollHeight - innerHeight; return m > 0 ? clamp(scrollY / m) : 0; };
+  function state() {
+    queued = false;
+    const p = still ? 0.05 : prog(); P = p;
+    let k = 0; while (k < KEYS.length - 2 && p > KEYS[k + 1][0]) k++;
+    const [p0, a] = KEYS[k], [p1, b] = KEYS[k + 1], f = clamp((p - p0) / (p1 - p0));
+    a.forEach((col, i) => root.setProperty('--s' + i, mixc(col, b[i], f)));
+    starA = clamp((p - 0.2) / 0.35);
+    if (!narrow() && !still) {
+      m1.style.transform = `translate3d(0,${(-p * H * 0.1).toFixed(1)}px,0)`;
+      m2.style.transform = `translate3d(0,${(p * H * 0.08).toFixed(1)}px,0)`;
+    }
+    m1.style.opacity = (0.7 + p * 0.3).toFixed(3);
+    m2.style.opacity = (0.5 + p * 0.5).toFixed(3);
+    scenes();
+    if (still) render(0, 0);
+  }
+  function sun(t) {
+    x.clearRect(0, 0, W, H);
+    const ts = t * 0.001, hz = H * 0.8, R = Math.min(W * 0.25, H * 0.36), cx = W * 0.5;
+    const sp = clamp(P / 0.4), cy = hz - R * 0.62 + Math.pow(sp, 1.15) * R * 1.9 + Math.sin(ts * 0.6) * R * 0.015;
+    const fade = 1 - sp * 0.5, shift = Math.floor(ts * 1.4);
+    if (cy - R < hz) {
+      x.fillStyle = `rgba(255,${Math.round(132 - sp * 40)},${Math.round(72 - sp * 22)},${fade})`;
+      x.beginPath();
+      const top = Math.max(0, cy - R * 1.5);
+      for (let y = Math.floor(top / step) * step; y < hz; y += step) {
+        const row = Math.round(y / step), odd = row & 1;
+        for (let px = odd ? step / 2 : 0; px < W + step; px += step) {
+          const d = Math.hypot(px - cx, y - cy) / R;
+          let v = d < 1 ? 1 - d * d * 0.55 : Math.max(0, 0.42 - (d - 1) * 1.1);
+          if (d < 1 && y > cy + R * 0.18 && (row - shift) % Math.max(2, 6 - Math.floor((y - cy) / R * 5)) === 0) continue;
+          v *= 0.84 + 0.16 * Math.sin(d * 11 - ts * 2.4);
+          if (v <= 0.03) continue;
+          const r = step * 0.5 * Math.min(1, Math.sqrt(v));
+          if (r < 0.55) continue;
+          x.moveTo(px + r, y); x.arc(px, y, r, 0, 6.2832);
+        }
+      }
+      x.fill();
+      const vis = clamp((hz - (cy - R)) / (2 * R));
+      x.fillStyle = `rgba(255,180,138,${0.55 * vis * fade})`;
+      for (let y = hz + step; y < H + step; y += step * 1.4) {
+        const kk = (y - hz) / (H - hz + 1), drift = Math.sin(y * 0.21 + ts * 1.7) * 10 * (0.4 + kk);
+        for (let px = 0; px < W + step; px += step) {
+          const d = Math.abs(px - cx + drift) / (R * (1.1 - kk * 0.4));
+          const v = (1 - d) * (1 - kk) * (0.7 + 0.3 * Math.sin(px * 0.035 + y * 0.3 - ts * 3));
+          if (v <= 0.05) continue;
+          x.fillRect(px - step * 0.45 * v, y, step * 0.9 * v, 1.6);
+        }
+      }
+      const g = x.createRadialGradient(cx, hz, 0, cx, hz, R * 2.4);
+      g.addColorStop(0, `rgba(255,140,80,${(0.2 + 0.04 * Math.sin(ts * 0.9)) * vis})`); g.addColorStop(1, 'rgba(255,140,80,0)');
+      x.fillStyle = g; x.fillRect(0, hz - R * 2.4, W, R * 4.8);
+    }
+    x.fillStyle = `rgba(241,231,216,${0.32 * (1 - P * 0.6)})`; x.fillRect(0, hz, W, 1);
+    const gx = ((ts * 90) % (W + 600)) - 300, gl = x.createRadialGradient(gx, hz, 0, gx, hz, 220);
+    gl.addColorStop(0, `rgba(255,190,150,${0.55 * (1 - P * 0.5)})`); gl.addColorStop(0.25, 'rgba(120,150,255,.18)'); gl.addColorStop(1, 'rgba(120,150,255,0)');
+    x.fillStyle = gl; x.fillRect(gx - 220, hz - 1.5, 440, 3);
+  }
+  function clouds(t) {
+    const st = mobile ? 14 : 11, y0 = H * 0.04, y1 = H * 0.76, a = 0.42 * (1 - P * 0.45), tt = t * 0.001;
+    sx.fillStyle = `rgba(92,132,255,${a.toFixed(3)})`;
+    sx.beginPath();
+    for (let y = y0; y < y1; y += st) {
+      const off = (Math.round(y / st) & 1) ? st / 2 : 0, band = Math.sin(Math.PI * (y - y0) / (y1 - y0));
+      const wy = Math.sin(y * 0.012 + tt * 0.11) * 1.4, cy2 = Math.cos(y * 0.0105 - tt * 0.09);
+      for (let px = off; px < W + st; px += st) {
+        const n = Math.sin(px * 0.0036 - tt * 0.24 + wy) * cy2 + 0.55 * Math.sin((px * 0.7 + y) * 0.0042 - tt * 0.18);
+        const v = (n - 0.32) * band;
+        if (v <= 0.02) continue;
+        const r = st * 0.46 * Math.min(1, Math.sqrt(v * 1.4));
+        if (r < 0.6) continue;
+        sx.moveTo(px + r, y); sx.arc(px, y, r, 0, 6.2832);
+      }
+    }
+    sx.fill();
+  }
+  function stars(t) {
+    if (starA <= 0) return;
+    for (const s of STARS) {
+      const tw = still ? 0.8 : 0.55 + 0.45 * Math.sin(t / 1000 * s.sp + s.ph);
+      sx.fillStyle = `rgba(241,231,216,${(starA * tw * (0.35 + s.r / 2.2)).toFixed(3)})`;
+      sx.beginPath(); sx.arc(s.x, s.y, s.r, 0, 6.2832); sx.fill();
+      if (s.r > 1.5) { sx.fillStyle = `rgba(255,190,150,${(starA * tw * 0.35).toFixed(3)})`; sx.fillRect(s.x - 4, s.y - 0.4, 8, 0.8); sx.fillRect(s.x - 0.4, s.y - 4, 0.8, 8); }
+    }
+  }
+  function meteors(dt) {
+    if (still) return;
+    if (starA > 0.15 && METEORS.length < 2 && Math.random() < dt / 7000) METEORS.push({ x: W * (0.1 + Math.random() * 0.6), y: H * (0.05 + Math.random() * 0.3), vx: 0.55 + Math.random() * 0.35, vy: 0.16 + Math.random() * 0.1, life: 0, max: 1300 });
+    METEORS = METEORS.filter(m => (m.life += dt) < m.max);
+    for (const m of METEORS) {
+      const k = m.life / m.max, a = Math.sin(Math.PI * k) * starA, hx2 = m.x + m.vx * m.life, hy = m.y + m.vy * m.life;
+      const g = sx.createLinearGradient(hx2, hy, hx2 - m.vx * 160, hy - m.vy * 160);
+      g.addColorStop(0, `rgba(255,200,160,${a})`); g.addColorStop(0.4, `rgba(120,150,255,${a * 0.5})`); g.addColorStop(1, 'rgba(120,150,255,0)');
+      sx.strokeStyle = g; sx.lineWidth = 1.4; sx.beginPath(); sx.moveTo(hx2, hy); sx.lineTo(hx2 - m.vx * 160, hy - m.vy * 160); sx.stroke();
+    }
+  }
+  function render(t, dt) { sun(t); sx.clearRect(0, 0, W, H); clouds(t); stars(t); meteors(dt); }
+  function loop(t) {
+    requestAnimationFrame(loop);
+    if (document.hidden || t - lastT < (mobile ? 66 : 40)) return;
+    const dt = Math.min(200, t - lastT); lastT = t; render(t, dt);
+  }
+  const queue = () => { if (!queued) { queued = true; requestAnimationFrame(state); } };
+  size(); state();
+  if (!still) requestAnimationFrame(loop);
+  addEventListener('resize', () => { size(); queue(); });
+  addEventListener('scroll', queue, { passive: true });
+  const gc = $('#glowcur');
+  if (!still && matchMedia('(pointer:fine)').matches) addEventListener('pointermove', e => { gc.style.opacity = '1'; gc.style.transform = `translate3d(${e.clientX}px,${e.clientY}px,0)`; }, { passive: true });
+})();
+
+if (location.hash.length > 1) setTimeout(() => go(location.hash, false), 60);
+loadPublic();
+setInterval(() => { if (!document.hidden) loadPublic(); }, 20000);
+})();
+</script>
+</body>
+</html>
