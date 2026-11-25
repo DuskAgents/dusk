@@ -70,10 +70,25 @@ export function createDusk(agentKey, { url = DEFAULT_URL } = {}) {
     return res.json(); // { ok: true, pass: true, ... } or { ok: false, error }
   }
 
+  // Above the grant's ask-above amount, spend() answers { ok: false, pending: true, request }.
+  // Poll the request until the owner decides. Pay the seller only when the status is 'approved'.
+  async function status(requestId) {
+    const res = await fetch(`${base}/api/spend/${encodeURIComponent(requestId)}`, { headers: auth });
+    return res.json(); // { ok, status: 'pending' | 'approved' | 'declined' | 'expired', receipt }
+  }
+  async function wait(requestId, { timeoutMs = 30 * 60 * 1000, everyMs = 5000 } = {}) {
+    const end = Date.now() + timeoutMs;
+    for (;;) {
+      const r = await status(requestId);
+      if (!r.ok || r.status !== 'pending' || Date.now() > end) return r;
+      await new Promise(f => setTimeout(f, everyMs));
+    }
+  }
+
   async function limits() {
     const res = await fetch(`${base}/api/agent`, { headers: auth });
     return res.json();
   }
 
-  return { grantId, spend, check, limits, seal, open, tagOf };
+  return { grantId, spend, check, status, wait, limits, seal, open, tagOf };
 }
