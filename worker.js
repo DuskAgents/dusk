@@ -205,11 +205,29 @@ async function sessionAddress(req, env) {
   return await env.DB.get(`sess:${t}`);
 }
 
+const RPC_FALLBACKS = ['https://robinhood-rpc.publicnode.com', 'https://robinhood.drpc.org', 'https://4663.rpc.thirdweb.com', 'https://rpc.mainnet.chain.robinhood.com', 'https://robinhoodchain.blockscout.com/api/eth-rpc'];
+let RPC_LAST_ERROR = '';
 async function rpc(env, method, params) {
-  const r = await fetch(env.RPC_URL || RPC_DEFAULT, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.message || 'RPC error');
-  return j.result;
+  const urls = [...new Set([env.RPC_URL, ...RPC_FALLBACKS].filter(Boolean))];
+  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
+  let last = 'RPC error'; const errs = [];
+  for (let round = 0; round < 2; round++) {
+    for (const url of urls) {
+      try {
+        const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; DUSK/1.0; +https://duskdot.fun)' }, body });
+        const t = await r.text();
+        if (!r.ok) { last = `${new URL(url).host} HTTP ${r.status}`; errs.push(last); continue; }
+        let j; try { j = JSON.parse(t); } catch { last = `${new URL(url).host} non-JSON`; errs.push(last); continue; }
+        if (j.error) { last = `${new URL(url).host} ${j.error.message || 'RPC error'}`; errs.push(last); continue; }
+        if (j.result === undefined || j.result === null) { last = `${new URL(url).host} empty result`; errs.push(last); continue; }
+        RPC_LAST_ERROR = '';
+        return j.result;
+      } catch (e) { last = `${new URL(url).host} ${e && e.message || 'fetch failed'}`; errs.push(last); }
+    }
+    if (round === 0) await new Promise(r => setTimeout(r, 400));
+  }
+  RPC_LAST_ERROR = errs.join(' | ');
+  throw new Error(method + ': ' + errs.join(' | '));
 }
 async function tierInfo(env) {
   const ca = ((await env.DB.get('ca')) || '').trim();
@@ -277,6 +295,12 @@ async function api(req, env, url) {
   }
   if (p === '/api/feed' && m === 'GET') {
     return json({ ok: true, feed: await getJSON(env, 'feed', []) });
+  }
+  if (p === '/api/health' && m === 'GET') {
+    const qa = (url.searchParams.get('addr') || '').toLowerCase();
+    if (/^0x[0-9a-f]{40}$/.test(qa)) { try { return json({ ok: true, tier: await tierOf(env, qa) }); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
+    try { const b = await rpc(env, 'eth_blockNumber', []); return json({ ok: true, rpc: true, block: parseInt(b, 16) }); }
+    catch (e) { return json({ ok: true, rpc: false, error: String(e && e.message || e) }); }
   }
   if (p === '/api/tier' && m === 'GET') {
     const { ca, min } = await tierInfo(env);
@@ -451,7 +475,7 @@ async function api(req, env, url) {
   }
 
   // Agent endpoints
-  if (p === '/api/agent' || p === '/api/spend') {
+  if (p === '/api/agent' || p === '/api/spend' || p === '/api/check') {
     const h = req.headers.get('authorization') || '';
     const t = h.startsWith('Bearer ') ? h.slice(7).trim() : '';
     const parts = t.split('.');
@@ -471,6 +495,22 @@ async function api(req, env, url) {
 
     if (p === '/api/agent' && m === 'GET') return json({ ok: true, ...view() }, 200, CORS);
 
+    // Dry run: same checks as /api/spend, nothing is spent or recorded.
+    if (p === '/api/check' && m === 'POST') {
+      if (!(await rateLimit(env, `check:${g.id}`, 120))) return err('Rate limit: 120 checks per minute', 429);
+      const b = await readBody(req, 2000);
+      const amt = toMicro(String(b.amount ?? ''));
+      if (!amt) return err('amount must be a positive USDC string, e.g. "0.0025"');
+      const tag = b.tag === undefined || b.tag === null ? '' : String(b.tag);
+      if (tag && !/^[0-9a-f]{64}$/.test(tag)) return err('tag must be 64 hex characters');
+      if (g.status !== 'active') return err(`Grant is ${g.status}`, 403);
+      if (Date.parse(g.expires) <= now) return err('Grant expired', 403);
+      if (g.allow && g.allow.length && !g.allow.includes(tag)) return err("Seller is not on this grant's private allowlist", 403);
+      if (amt > perCall) return err(`Over per-call limit (${g.perCall} USDC)`, 402);
+      if (daySpent + amt > daily) return err(`Over daily limit (${g.daily} USDC)`, 402);
+      if (g.spentMicro + amt > budget) return err(`Over budget (${fromMicro(Math.max(0, budget - g.spentMicro))} USDC left)`, 402);
+      return json({ ok: true, pass: true, amount: fromMicro(amt), ...view() }, 200, CORS);
+    }
     if (p === '/api/spend' && m === 'POST') {
       if (!(await rateLimit(env, `spend:${g.id}`, 120))) return err('Rate limit: 120 payments per minute', 429);
       const b = await readBody(req, 12000);

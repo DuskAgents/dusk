@@ -3,6 +3,7 @@
 <h1 align="center">DUSK</h1>
 <p align="center"><b>Private spending for AI agents.</b><br>Spent in silence. Bound by proof.</p>
 <p align="center"><a href="https://duskdot.fun">duskdot.fun</a> · <a href="https://x.com/DuskAgents">@DuskAgents</a> · Robinhood Chain</p>
+<p align="center"><b>$DUSK</b> <code>0x99c2a41ebddcade297e241fd152aa237d16832bc</code></p>
 
 ---
 
@@ -47,6 +48,40 @@ if (r.ok) {
 
 No dependencies. Runs on Node 18+, Deno, Bun, browsers and Workers. See [`examples/agent.mjs`](examples/agent.mjs).
 
+Test before you pay: `await dusk.check({ amount: '0.0025', seller: 'api.vendor.dev' })` runs the same checks as `spend`, and nothing is spent or recorded.
+
+### MCP server
+
+Plug DUSK into any MCP agent (Claude Desktop, Claude Code, Cursor and others). No dependencies, Node 18+.
+
+```json
+{
+  "mcpServers": {
+    "dusk": {
+      "command": "node",
+      "args": ["/path/to/dusk/mcp/dusk-mcp.mjs"],
+      "env": { "DUSK_AGENT_KEY": "<grantId>.<token>.<sealingKey>" }
+    }
+  }
+}
+```
+
+Your agent gets three tools: `dusk_limits`, `dusk_check` (dry run) and `dusk_spend`. It calls `dusk_spend` before every payment and pays only when DUSK approves. The sealing key never leaves your machine.
+
+### Python
+
+```python
+# pip install cryptography
+from dusk_agent import Dusk
+
+dusk = Dusk(os.environ["DUSK_AGENT_KEY"])
+r = dusk.spend("0.0025", "api.vendor.dev/search", request="lithium supply 2026")
+if r["ok"]:
+    ...  # pay the seller from your agent wallet
+```
+
+Same calls as the JS client: `limits()`, `check()`, `spend()`. See [`python/dusk_agent.py`](python/dusk_agent.py).
+
 ## API
 
 | Method | Route | Auth | |
@@ -63,6 +98,7 @@ No dependencies. Runs on Node 18+, Deno, Bun, browsers and Workers. See [`exampl
 | GET | `/api/grants/:id/ledger` | session | sealed entries |
 | POST | `/api/grants/:id/anchor` | session | record an on-chain anchor |
 | GET | `/api/agent` | agent key | limits and status |
+| POST | `/api/check` | agent key | `{ amount, tag }`, dry run, nothing recorded |
 | POST | `/api/spend` | agent key | `{ amount, sealed, tag }` |
 
 ## Protocol
@@ -123,6 +159,8 @@ src/ecc.js           keccak256 + secp256k1 recovery, shared by Worker and page
 src/worker_body.js   API, limits, sealed ledger, anchors
 src/index.src.html   the site
 client/              drop-in agent client
+mcp/                 MCP server for agents
+python/              Python client
 worker.js, public/   built output
 ```
 
