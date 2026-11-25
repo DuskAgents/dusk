@@ -82,6 +82,20 @@ class Dusk:
         """Dry run: same checks as spend, nothing is spent or recorded."""
         return self._call("/api/check", {"amount": str(amount), "tag": self.tag_of(seller) if seller else ""})
 
+    def status(self, request_id: str) -> dict:
+        """Status of a payment waiting for the owner: pending, approved, declined or expired."""
+        return self._call(f"/api/spend/{request_id}")
+
+    def wait(self, request_id: str, timeout: float = 1800, every: float = 5) -> dict:
+        """Poll until the owner decides. Pay only when status == 'approved'."""
+        import time
+        end = time.time() + timeout
+        while True:
+            r = self.status(request_id)
+            if not r.get("ok") or r.get("status") != "pending" or time.time() > end:
+                return r
+            time.sleep(every)
+
     def spend(self, amount, seller: str, request: str = "", note: str = "") -> dict:
         """Ask DUSK before paying. Pay the seller only when the result has ok == True."""
         sealed = self.seal({"seller": seller, "request": request, "note": note})
