@@ -94,7 +94,9 @@ The owner can `setPaused`, `setAgent` (rotate the agent wallet), `topUp`, `withd
 
 Plug it into Claude, Cursor or any MCP agent: set `DUSK_AGENT_WALLET_KEY` and `DUSK_VAULT_ID` for [`mcp/dusk-mcp.mjs`](mcp/dusk-mcp.mjs) and your AI gets `dusk_vault`, `dusk_vault_check` and `dusk_vault_pay`. In code, [`client/dusk-vault.mjs`](client/dusk-vault.mjs) does the same with no dependencies: `createVault({ key, vault }).pay(seller, '0.05')`.
 
-`canPay(vault, seller, amount)` tells an agent ahead of time: `0` pays now, `1` waits for the owner, `2+` refused. Sellers confirm a payment with `GET /api/v4/paid?tx=0x…`.
+**Kill switch (V5).** `freezeAll(true)` freezes every vault the caller owns in one transaction. While frozen, no agent can pay and no waiting payment can be approved. Funds stay reachable: the owner can still `withdraw`, `close`, `setAgent` or `decline`. `freezeAll(false)` turns everything back on. Anyone can read `frozen(owner)`.
+
+`canPay(vault, seller, amount)` tells an agent ahead of time: `0` pays now, `1` waits for the owner, `2+` refused, `10` the owner froze every vault. Sellers confirm a payment with `GET /api/v4/paid?tx=0x…`.
 
 ```bash
 cd contracts && forge test
@@ -214,7 +216,7 @@ client/              drop-in agent client
 mcp/                 MCP server for agents
 python/              Python client
 seller/              seller check for APIs that serve agents
-contracts/           V4 vault contract and tests (Foundry)
+contracts/           vault contract (V5, kill switch) and tests (Foundry)
 worker.js, public/   built output
 ```
 
