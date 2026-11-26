@@ -6,20 +6,53 @@
 //   dusk_spend   ask DUSK before paying a seller. Pay only when the answer is ok.
 //   dusk_status  follow a payment waiting for the owner's approval.
 //
-// Config: DUSK_AGENT_KEY=<grantId>.<token>.<sealingKey>   (required)
-//         DUSK_URL=https://duskdot.fun                     (optional)
+//
+// V4, on-chain: the agent pays sellers straight from its DUSK vault on Robinhood Chain.
+//   dusk_vault          the vault's live limits and what is left
+//   dusk_vault_check    would this payment go through right now?
+//   dusk_vault_pay      pay a seller from the vault, inside the owner's limits
+//
+// Config (grants):  DUSK_AGENT_KEY=<grantId>.<token>.<sealingKey>
+// Config (V4):      DUSK_AGENT_WALLET_KEY=<agent wallet key>  DUSK_VAULT_ID=<vault number>
+// Set either one, or both.            DUSK_URL=https://duskdot.fun (optional)
 
 import { createDusk } from '../client/dusk-agent.mjs';
+import { createVault } from '../client/dusk-vault.mjs';
 
-const SERVER = { name: 'dusk', version: '2.0.0' };
+const SERVER = { name: 'dusk', version: '3.0.0' };
 const PROTOCOL = '2025-06-18';
 
-let dusk = null, keyError = '';
-try { dusk = createDusk(process.env.DUSK_AGENT_KEY, { url: process.env.DUSK_URL || 'https://duskdot.fun' }); }
-catch (e) { keyError = e.message; }
+let dusk = null, keyError = '', vault = null, vaultError = '';
+if (process.env.DUSK_AGENT_KEY) {
+  try { dusk = createDusk(process.env.DUSK_AGENT_KEY, { url: process.env.DUSK_URL || 'https://duskdot.fun' }); }
+  catch (e) { keyError = e.message; }
+} else keyError = 'set DUSK_AGENT_KEY';
+if (process.env.DUSK_AGENT_WALLET_KEY || process.env.DUSK_VAULT_ID) {
+  try { vault = createVault({ key: process.env.DUSK_AGENT_WALLET_KEY, vault: process.env.DUSK_VAULT_ID }); }
+  catch (e) { vaultError = e.message; }
+} else vaultError = 'set DUSK_AGENT_WALLET_KEY and DUSK_VAULT_ID';
 
 const amount = { type: 'string', description: 'USDC amount as a decimal string, e.g. "0.0025"' };
 const seller = { type: 'string', description: 'Seller URL or host, e.g. "api.vendor.dev/search"' };
+const wallet = { type: 'string', description: 'Seller wallet address, 0x…' };
+const tokenAmount = { type: 'string', description: 'Amount in the vault token, as a decimal string, e.g. "0.05"' };
+const VAULT_TOOLS = [
+  {
+    name: 'dusk_vault',
+    description: "Read this agent's DUSK vault on Robinhood Chain: status, what is left, spent today, per-payment and daily limits, expiry.",
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'dusk_vault_check',
+    description: 'Ask the vault contract whether a payment would go through right now. Free, nothing is sent.',
+    inputSchema: { type: 'object', properties: { seller: wallet, amount: tokenAmount }, required: ['seller', 'amount'], additionalProperties: false },
+  },
+  {
+    name: 'dusk_vault_pay',
+    description: "Pay a seller from the vault. The contract enforces the owner's limits: inside them the seller is paid in the same transaction, above the owner's ask-me amount the payment waits for the owner, anything else is refused and nothing moves. Give the returned transaction hash to the seller.",
+    inputSchema: { type: 'object', properties: { seller: wallet, amount: tokenAmount, memo: { type: 'string', description: 'Short note stored on-chain, max 32 bytes' } }, required: ['seller', 'amount'], additionalProperties: false },
+  },
+];
 const TOOLS = [
   {
     name: 'dusk_limits',
@@ -57,6 +90,21 @@ function text(obj, isError = false) {
 }
 
 async function callTool(name, args = {}) {
+  if (name.startsWith('dusk_vault')) {
+    if (!vault) return text(`DUSK vault is not configured: ${vaultError}.`, true);
+    if (name === 'dusk_vault') { const r = await vault.status(); return r.ok ? text(r) : text(r.error, true); }
+    if (name === 'dusk_vault_check') {
+      const r = await vault.canPay(args.seller, args.amount);
+      return text(r.ok ? 'Would go through now.' : r.waiting ? "Would wait for the owner's approval." : `Would be refused: ${r.reason}.`);
+    }
+    if (name === 'dusk_vault_pay') {
+      const r = await vault.pay(args.seller, args.amount, args.memo || '');
+      if (r.ok) return text(`Paid ${r.amount} to ${r.seller} from the vault. Transaction ${r.hash}. Give this hash to the seller.`);
+      if (r.waiting) return text(`Waiting for the owner's approval (request ${r.request}). The seller is paid automatically once the owner approves. Transaction ${r.hash}.`);
+      if (r.pending) return text(`Sent, not confirmed yet. Transaction ${r.hash}.`);
+      return text(`Refused by the vault: ${r.reason}. Nothing moved.`, true);
+    }
+  }
   if (!dusk) return text(`DUSK is not configured: ${keyError || 'set DUSK_AGENT_KEY'}.`, true);
   if (name === 'dusk_limits') {
     const r = await dusk.limits();
@@ -87,10 +135,10 @@ async function handle(msg) {
   const { id, method, params } = msg;
   if (method === 'initialize') {
     return { protocolVersion: params && params.protocolVersion ? params.protocolVersion : PROTOCOL, capabilities: { tools: { listChanged: false } }, serverInfo: SERVER,
-      instructions: 'Before paying any seller, call dusk_spend. Pay only when it says Approved.' };
+      instructions: vault ? 'To pay a seller, call dusk_vault_pay. The vault contract enforces the owner\'s limits on-chain.' : 'Before paying any seller, call dusk_spend. Pay only when it says Approved.' };
   }
   if (method === 'ping') return {};
-  if (method === 'tools/list') return { tools: TOOLS };
+  if (method === 'tools/list') return { tools: [...(dusk || !vault ? TOOLS : []), ...(vault || !dusk ? VAULT_TOOLS : [])] };
   if (method === 'tools/call') {
     try { return await callTool(params.name, params.arguments || {}); }
     catch (e) { if (e.code) throw e; return text(`DUSK could not be reached: ${e.message}`, true); }
