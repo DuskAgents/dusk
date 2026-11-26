@@ -12,10 +12,10 @@ import { readFileSync } from 'node:fs';
 
 const ECC = new Function(readFileSync(new URL('../src/ecc.js', import.meta.url), 'utf8') + '\nreturn DUSK_ECC;')();
 const enc = new TextEncoder();
-export const VAULT_CONTRACT = '0x2ae5a2c5ebe591bb647b45fdbc276cb334fbcff4';
+export const VAULT_CONTRACT = '0x4edeadda833fb485f2932df8446dabe77251841a';
 export const CHAIN_ID = 4663n;
 const RPCS = ['https://robinhood-rpc.publicnode.com', 'https://rpc.mainnet.chain.robinhood.com', 'https://4663.rpc.thirdweb.com'];
-const REASONS = { 2: 'no such vault', 3: 'vault closed', 4: 'vault paused by its owner', 5: 'vault expired', 6: 'over the per-payment limit', 7: 'over the daily limit', 8: 'over the per-seller daily limit', 9: 'not enough left in the vault' };
+const REASONS = { 2: 'no such vault', 3: 'vault closed', 4: 'vault paused by its owner', 5: 'vault expired', 6: 'over the per-payment limit', 7: 'over the daily limit', 8: 'over the per-seller daily limit', 9: 'not enough left in the vault', 10: 'the owner froze every vault (kill switch)' };
 
 const sel = s => '0x' + ECC.bytesToHex(ECC.keccak256(enc.encode(s))).slice(0, 8);
 const topic = s => '0x' + ECC.bytesToHex(ECC.keccak256(enc.encode(s)));
