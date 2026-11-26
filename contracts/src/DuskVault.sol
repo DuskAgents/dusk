@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title DUSK Vault (V4)
+/// @title DUSK Vault (V5)
 /// @notice Spending limits for AI agents, enforced on-chain.
 ///         An owner locks tokens in a vault and names an agent wallet.
 ///         The agent can pay sellers only inside the limits the owner set:
 ///         per payment, per day, per seller per day, total balance and expiry.
 ///         Above an optional threshold, a payment waits for the owner's approval.
+///         Kill switch: one call freezes every vault of an owner at once, and nothing can be paid until they unfreeze.
 ///         No admin, no upgrade, no override. Nobody but the owner can move a vault's funds
 ///         outside these rules, and nobody can raise its limits but the owner.
 interface IERC20 {
@@ -54,6 +55,8 @@ contract DuskVault {
     uint256 public vaultCount;
     uint256 public requestCount;
     uint256 private _lock = 1;
+    /// @notice Owner kill switch. While true, no vault of this owner can pay or approve.
+    mapping(address => bool) public frozen;
 
     event Opened(uint256 indexed vault, address indexed owner, address indexed agent, address token, uint256 deposit, uint256 perCall, uint256 daily, uint256 sellerDaily, uint256 askAbove, uint256 expires);
     event ToppedUp(uint256 indexed vault, uint256 amount);
@@ -64,6 +67,7 @@ contract DuskVault {
     event Paused(uint256 indexed vault, bool paused);
     event AgentChanged(uint256 indexed vault, address agent);
     event Closed(uint256 indexed vault, uint256 refund);
+    event Frozen(address indexed owner, bool frozen);
 
     error NotOwner();
     error NotAgent();
@@ -79,6 +83,7 @@ contract DuskVault {
     error RequestExpired();
     error TransferFailed();
     error Reentrancy();
+    error OwnerFrozen();
 
     modifier nonReentrant() {
         if (_lock != 1) revert Reentrancy();
@@ -172,6 +177,13 @@ contract DuskVault {
         emit Closed(id, refund);
     }
 
+    /// @notice Kill switch. Freeze every vault you own in one call, or unfreeze them.
+    ///         Frozen vaults keep their funds: you can still withdraw, close, rotate the agent or decline.
+    function freezeAll(bool on) external {
+        frozen[msg.sender] = on;
+        emit Frozen(msg.sender, on);
+    }
+
     function approve(uint256 id, uint256 rid) external nonReentrant onlyOwner(id) {
         Request storage r = _requests[rid];
         if (r.vault != id || r.status != 1) revert RequestNotWaiting();
@@ -233,11 +245,12 @@ contract DuskVault {
         sellerToday = _sellerDay[id][seller] == d ? _sellerSpent[id][seller] : 0;
     }
 
-    /// @notice Would this payment go through right now? Returns 0 = yes, 1 = needs owner, 2+ = refused (see `reasons`).
+    /// @notice Would this payment go through right now? Returns 0 = yes, 1 = needs owner, 2+ = refused, 10 = owner froze every vault.
     function canPay(uint256 id, address seller, uint256 amount) external view returns (uint8) {
         Vault storage v = _vaults[id];
         if (v.owner == address(0)) return 2;
         if (v.closed) return 3;
+        if (frozen[v.owner]) return 10;
         if (v.paused) return 4;
         if (block.timestamp >= v.expires) return 5;
         if (amount > v.perCall) return 6;
@@ -253,6 +266,7 @@ contract DuskVault {
 
     function _check(Vault storage v, uint256 id, address seller, uint256 amount) private view returns (uint256 d, uint256 vToday, uint256 sToday) {
         if (v.closed) revert VaultClosed();
+        if (frozen[v.owner]) revert OwnerFrozen();
         if (v.paused) revert VaultPaused();
         if (block.timestamp >= v.expires) revert VaultExpired();
         if (amount > v.perCall) revert OverPerCall();
