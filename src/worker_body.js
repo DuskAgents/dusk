@@ -218,6 +218,7 @@ async function rpcRaw(env, method, params) {
   throw new Error(last);
 }
 const v4Topic = sig => '0x' + DUSK_ECC.bytesToHex(DUSK_ECC.keccak256(enc.encode(sig)));
+const V4_LEGACY = ['0x2ae5a2c5ebe591bb647b45fdbc276cb334fbcff4'];
 async function v4Addr(env) { const a = ((await env.DB.get('v4')) || '').trim().toLowerCase(); return /^0x[0-9a-f]{40}$/.test(a) ? a : ''; }
 
 async function readBody(req, max = 16384) {
@@ -304,7 +305,7 @@ async function api(req, env, url) {
     return json({ ok: true, gated: !!ca, min, freeGrants: FREE_GRANTS, holderGrants: HOLDER_GRANTS });
   }
   if (p === '/api/v4' && m === 'GET') {
-    return json({ ok: true, address: await v4Addr(env), chainId: 4663, token: V4_TOKEN, explorer: 'https://robinhoodchain.blockscout.com' }, 200, CORS);
+    return json({ ok: true, address: await v4Addr(env), legacy: V4_LEGACY, chainId: 4663, token: V4_TOKEN, explorer: 'https://robinhoodchain.blockscout.com' }, 200, CORS);
   }
   if (p === '/api/chain' && m === 'POST') {
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
@@ -323,14 +324,15 @@ async function api(req, env, url) {
     let rc; try { rc = (await rpcRaw(env, 'eth_getTransactionReceipt', [tx])).result; } catch { return err('Robinhood Chain did not answer. Try again.', 503); }
     if (!rc) return json({ ok: true, found: false, status: 'pending or unknown' }, 200, CORS);
     const topic = v4Topic('Paid(uint256,address,uint256,uint256,bytes32)');
-    const pays = (rc.logs || []).filter(l => (l.address || '').toLowerCase() === va && l.topics && l.topics[0] === topic).map(l => {
+    const known = new Set([va, ...V4_LEGACY]);
+    const pays = (rc.logs || []).filter(l => known.has((l.address || '').toLowerCase()) && l.topics && l.topics[0] === topic).map(l => {
       const d = l.data.slice(2);
-      return { vault: String(BigInt(l.topics[1])), seller: '0x' + l.topics[2].slice(26), amount: BigInt('0x' + d.slice(0, 64)).toString(), n: String(BigInt('0x' + d.slice(64, 128))), memo: '0x' + d.slice(128, 192) };
+      return { contract: (l.address || '').toLowerCase(), vault: String(BigInt(l.topics[1])), seller: '0x' + l.topics[2].slice(26), amount: BigInt('0x' + d.slice(0, 64)).toString(), n: String(BigInt('0x' + d.slice(64, 128))), memo: '0x' + d.slice(128, 192) };
     });
     const sel = v4Topic('getVault(uint256)').slice(0, 10);
     for (const x of pays) {
       try {
-        const r = (await rpcRaw(env, 'eth_call', [{ to: va, data: sel + BigInt(x.vault).toString(16).padStart(64, '0') }, 'latest'])).result || '';
+        const r = (await rpcRaw(env, 'eth_call', [{ to: x.contract, data: sel + BigInt(x.vault).toString(16).padStart(64, '0') }, 'latest'])).result || '';
         x.token = '0x' + r.slice(2 + 64 * 2 + 24, 2 + 64 * 3);
         x.owner = '0x' + r.slice(2 + 24, 2 + 64);
       } catch {}
