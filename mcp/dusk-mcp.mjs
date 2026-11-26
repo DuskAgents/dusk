@@ -28,7 +28,7 @@ if (process.env.DUSK_AGENT_KEY) {
   catch (e) { keyError = e.message; }
 } else keyError = 'set DUSK_AGENT_KEY';
 if (process.env.DUSK_AGENT_WALLET_KEY || process.env.DUSK_VAULT_ID) {
-  try { vault = createVault({ key: process.env.DUSK_AGENT_WALLET_KEY, vault: process.env.DUSK_VAULT_ID }); }
+  try { vault = createVault({ key: process.env.DUSK_AGENT_WALLET_KEY, vault: process.env.DUSK_VAULT_ID, ...(process.env.DUSK_VAULT_CONTRACT ? { contract: process.env.DUSK_VAULT_CONTRACT } : {}) }); }
   catch (e) { vaultError = e.message; }
 } else vaultError = 'set DUSK_AGENT_WALLET_KEY and DUSK_VAULT_ID';
 
