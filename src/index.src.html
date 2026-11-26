@@ -599,14 +599,28 @@ input[type=range].r-blue::-moz-range-thumb{background:var(--blue);box-shadow:0 0
         <div id="v4List"></div>
       </div>
       <div class="flow">
-        <div class="step rv"><i>i</i><div style="min-width:0"><h3>Your agent <em>pays.</em></h3><p>The agent signs <code>pay(vault, seller, amount, memo)</code> with its own wallet. Inside the limits, the seller is paid in the same transaction. Above your ask-me amount, it waits for your approval right here. Anything else reverts.</p>
+        <div class="step rv"><i>i</i><div style="min-width:0"><h3>Plug in <em>your AI.</em></h3><p>Claude, Cursor or any MCP agent gets three tools: <code>dusk_vault</code>, <code>dusk_vault_check</code> and <code>dusk_vault_pay</code>. Your AI pays sellers from its vault on its own, and the contract keeps it inside your limits. Open a vault above with Generate and this config fills itself in.</p>
+          <div class="codebar"><span class="note" style="margin:0">MCP config · Node 18+, no dependencies · <a href="https://github.com/DuskAgents/dusk" target="_blank" rel="noopener">GitHub</a></span><button class="btn sm" type="button" data-copy="v4Mcp">Copy</button></div>
+<pre id="v4Mcp">{
+  "mcpServers": {
+    "dusk": {
+      "command": "node",
+      "args": ["/path/to/dusk/mcp/dusk-mcp.mjs"],
+      "env": {
+        "DUSK_AGENT_WALLET_KEY": "&lt;agent wallet key&gt;",
+        "DUSK_VAULT_ID": "&lt;vault number&gt;"
+      }
+    }
+  }
+}</pre></div></div>
+        <div class="step rv"><i>ii</i><div style="min-width:0"><h3>Or code <em>it yourself.</em></h3><p>The agent signs <code>pay(vault, seller, amount, memo)</code> with its own wallet. Inside the limits, the seller is paid in the same transaction. Above your ask-me amount, it waits for your approval right here. Anything else reverts.</p>
           <div class="codebar"><span class="note" style="margin:0">Node 18+ · npm i viem</span><button class="btn sm" type="button" data-copy="v4Snip">Copy</button></div>
           <pre id="v4Snip"></pre></div></div>
-        <div class="step rv"><i>ii</i><div style="min-width:0"><h3>Sellers <em>check.</em></h3><p>The agent hands over its transaction hash. One call confirms the payment came from a DUSK vault, to whom, and how much.</p>
+        <div class="step rv"><i>iii</i><div style="min-width:0"><h3>Sellers <em>check.</em></h3><p>The agent hands over its transaction hash. One call confirms the payment came from a DUSK vault, to whom, and how much.</p>
           <div class="ep"><b>GET</b><span>/api/v4/paid?tx=0x…</span></div>
           <form class="proofin" id="v4PaidForm" style="margin-top:16px"><input id="v4PaidTx" placeholder="Transaction hash" maxlength="70"><button class="btn sun" type="submit">Check</button></form>
           <div id="v4PaidOut"></div></div></div>
-        <div class="step rv"><i>iii</i><div><h3>Nothing to <em>trust.</em></h3><p>No admin key, no upgrade, no pause button for anyone but you. The rules live in the contract, open source on <a href="https://github.com/DuskAgents/dusk" target="_blank" rel="noopener">GitHub</a> and readable on the explorer. Grants signed in the vault above keep working as before.</p></div></div>
+        <div class="step rv"><i>iv</i><div><h3>Nothing to <em>trust.</em></h3><p>No admin key, no upgrade, no pause button for anyone but you. The rules live in the contract, open source on <a href="https://github.com/DuskAgents/dusk" target="_blank" rel="noopener">GitHub</a> and readable on the explorer. Grants signed in the vault above keep working as before.</p></div></div>
       </div>
     </div>
   </section>
@@ -1014,6 +1028,7 @@ async function connect(m = $('#gateMsg')) {
     const accs = await provider().request({ method: 'eth_requestAccounts' });
     if (!accs || !accs[0]) throw new Error('No account selected');
     S.addr = accs[0].toLowerCase();
+    try { if (!V4.addr) { V4.addr = S.addr; v4UI(); v4Load(); } } catch {}
     setMsg(m, 'Signature 1 of 2: unlock your vault key…');
     const vs = await sign(VAULT_MSG(S.addr));
     S.key = await aesKey(new Uint8Array(await crypto.subtle.digest('SHA-256', DUSK_ECC.hexToBytes(vs))));
@@ -1517,6 +1532,7 @@ async function ensureRH(p) {
 }
 async function v4Send(to, data, value = 0n, note = 'Confirm in your wallet') {
   const p = provider(); if (!p) throw new Error('No browser wallet found.');
+  V4.busy = true; try {
   const val = '0x' + value.toString(16);
   try { await chain('eth_call', [{ from: V4.addr, to, data, value: val }, 'latest']); }
   catch (e) { if (e.message === 'reverted') throw new Error(revertText(e) || 'The contract would refuse this.'); throw e; }
@@ -1530,6 +1546,7 @@ async function v4Send(to, data, value = 0n, note = 'Confirm in your wallet') {
     if (rc) { if (rc.status !== '0x1') throw new Error('The transaction failed on-chain.'); return { tx, rc }; }
   }
   throw new Error('Still pending. Check the explorer in a minute.');
+  } finally { V4.busy = false; }
 }
 function v4UI() {
   $('#v4Conn').textContent = V4.addr ? 'Disconnect' : 'Connect wallet';
@@ -1551,7 +1568,7 @@ $('#v4Gen').onclick = () => {
   const Q = E._affine(E._mulAdd(d, E._G, 0n, E._G)), pub = new Uint8Array(64);
   pub.set(E.bigTo32(Q[0])); pub.set(E.bigTo32(Q[1]), 32);
   const addr = '0x' + E.bytesToHex(E.keccak256(pub).slice(12)), key = '0x' + E.bytesToHex(E.bigTo32(d));
-  $('#v4Agent').value = addr;
+  $('#v4Agent').value = addr; V4.genKey = key; V4.genAddr = addr;
   $('#v4Key').innerHTML = `<div class="keybox"><label>Agent wallet key · shown once</label><code id="v4KeyVal">${esc(key)}</code><button class="btn sm sun" type="button" data-copy="v4KeyVal">Copy key</button><p style="margin-top:12px">Created in this page, never sent anywhere. Give it to your agent as DUSK_AGENT_WALLET_KEY. It can only pay through your vault's limits, and you can swap it with New agent at any time.</p></div>`;
   $('#v4Key [data-copy]').onclick = () => copy($('#v4KeyVal').textContent);
 };
@@ -1584,7 +1601,15 @@ $('#v4Form').addEventListener('submit', async ev => {
     setMsg(m, 'Step 2 of 2: open the vault.', 'ok');
     const exp = BigInt(Math.floor(Date.now() / 1000) + Number($('#v4Days').value) * 86400);
     const data = sel('open(address,address,uint256,uint256,uint256,uint256,uint256,uint256)') + wAddr(agent) + wAddr(t.address) + w256(dep) + w256(call) + w256(day) + w256(sc) + w256(ask) + w256(exp);
-    const { tx } = await v4Send(V4.c, data, gas, 'Open the vault');
+    const { tx, rc } = await v4Send(V4.c, data, gas, 'Open the vault');
+    const opened = (rc.logs || []).find(l => l.topics && l.topics[0] === '0x' + k4('Opened(uint256,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256)'));
+    const vid = opened ? String(BigInt(opened.topics[1])) : '';
+    if (vid && V4.genKey && V4.genAddr && V4.genAddr.toLowerCase() === agent.toLowerCase()) {
+      const cfg = JSON.stringify({ mcpServers: { dusk: { command: 'node', args: ['/path/to/dusk/mcp/dusk-mcp.mjs'], env: { DUSK_AGENT_WALLET_KEY: V4.genKey, DUSK_VAULT_ID: vid } } } }, null, 2);
+      $('#v4Key').innerHTML = `<div class="keybox"><label>Your AI is ready · vault #${esc(vid)} · shown once</label><pre id="v4Cfg" style="margin:10px 0 14px;white-space:pre-wrap;word-break:break-all">${esc(cfg)}</pre><button class="btn sm sun" type="button" id="v4CfgCopy">Copy config</button><p style="margin-top:12px">Paste it into Claude Desktop, Cursor or any MCP client. It holds your agent's wallet key: keep it private. The key can only pay through this vault, inside your limits, and you can swap it with New agent at any time.</p></div>`;
+      $('#v4CfgCopy').onclick = () => copy($('#v4Cfg').textContent);
+      V4.genKey = null;
+    }
     setMsg(m, '', ''); m.innerHTML = `<span class="ok">Vault open. Your agent can pay now, inside your limits.</span> <a href="${EXPLORER}${esc(tx)}" target="_blank" rel="noopener">View on explorer</a>`; m.className = 'msg';
     await v4Load();
   } catch (e) { setMsg(m, walletError(e), 'bad'); }
@@ -1706,6 +1731,12 @@ export async function pay(seller, amount, memo = '') {
     else { $('#v4Contract').textContent = 'The vault contract is being deployed. Back in a few minutes.'; $('#v4Btn').disabled = true; }
   } catch { $('#v4Contract').textContent = 'Could not reach DUSK. Refresh in a moment.'; }
   v4Snip(); v4UI();
+  // one wallet for the whole site: reuse the top connection, keep the list fresh
+  setInterval(() => {
+    if (!V4.addr && S.addr) { V4.addr = S.addr; v4UI(); v4Load(); return; }
+    if (V4.addr && !document.hidden && !V4.busy && !document.querySelector('.v4in:not([hidden])')) v4Load();
+  }, 15000);
+  setTimeout(() => { if (!V4.addr && S.addr) { V4.addr = S.addr; v4UI(); v4Load(); } }, 1500);
 })();
 
 /* ---------- V3.5: forecast + seller check ---------- */
