@@ -171,9 +171,54 @@ function ownerGrant(g) {
     remaining: fromMicro(Math.max(0, toMicro(g.budget) - g.spentMicro)),
     spentToday: fromMicro(g.day === today ? g.daySpentMicro : 0),
     lastAt: g.lastAt || null,
+    forecast: forecast(g),
     pending: (g.pending || []).filter(x => x.status === 'pending' && Date.parse(x.exp) > Date.now()).map(x => ({ id: x.id, t: x.t, amount: x.amount, sealed: x.sealed, exp: x.exp })),
   };
 }
+
+/* ---------- V3.5: budget forecast ---------- */
+function forecast(g, now = Date.now()) {
+  const budget = toMicro(g.budget) || 0, left = Math.max(0, budget - g.spentMicro);
+  const iss = Date.parse(g.issued) || now, exp = Date.parse(g.expires) || now;
+  const days = Math.max(1, (now - iss) / 86400e3);
+  const pace = Math.min(toMicro(g.daily) || 0, Math.round(g.spentMicro / days));
+  const low = budget > 0 && left < budget * 0.2;
+  const base = { left: fromMicro(left), leftPct: budget ? Math.round((left / budget) * 1000) / 10 : 0, low };
+  if (!pace) return { ...base, pace: '0', daysLeft: null, runsOut: null, outlasts: true };
+  const daysLeft = left / pace, at = now + daysLeft * 86400e3;
+  return { ...base, pace: fromMicro(pace), daysLeft: Math.floor(daysLeft * 10) / 10, runsOut: at < exp ? new Date(at).toISOString() : null, outlasts: at >= exp };
+}
+/* ---------- V3.5: seller-side checks ---------- */
+function coverError(g, amt, now) {
+  const daySpent = g.day === dayKey(now) ? g.daySpentMicro : 0;
+  if (g.status !== 'active') return `Grant is ${g.status}`;
+  if (Date.parse(g.expires) <= now) return 'Grant expired';
+  if (amt > toMicro(g.perCall)) return `Over per-call limit (${g.perCall} USDC)`;
+  if (daySpent + amt > toMicro(g.daily)) return 'Over the daily limit for today';
+  if (g.spentMicro + amt > toMicro(g.budget)) return 'Over the remaining budget';
+  return '';
+}
+
+/* ---------- V4: on-chain vault ---------- */
+const V4_TOKEN = { address: '0x5fc5360d0400a0fd4f2af552add042d716f1d168', symbol: 'USDG', decimals: 6 };
+const V4_READ = new Set(['eth_call', 'eth_getTransactionReceipt', 'eth_blockNumber', 'eth_getBalance', 'eth_getCode', 'eth_chainId']);
+async function rpcRaw(env, method, params) {
+  const urls = [...new Set([env.RPC_URL, ...RPC_FALLBACKS].filter(Boolean))];
+  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
+  let last = 'RPC error';
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; DUSK/1.0; +https://duskdot.fun)' }, body });
+      if (!r.ok) { last = `HTTP ${r.status}`; continue; }
+      const j = await r.json();
+      if (j.error) { if (/revert/i.test(j.error.message || '')) return { error: j.error }; last = j.error.message || 'RPC error'; continue; }
+      return { result: j.result === undefined ? null : j.result };
+    } catch (e) { last = String(e && e.message || e); }
+  }
+  throw new Error(last);
+}
+const v4Topic = sig => '0x' + DUSK_ECC.bytesToHex(DUSK_ECC.keccak256(enc.encode(sig)));
+async function v4Addr(env) { const a = ((await env.DB.get('v4')) || '').trim().toLowerCase(); return /^0x[0-9a-f]{40}$/.test(a) ? a : ''; }
 
 async function readBody(req, max = 16384) {
   const t = await req.text();
@@ -257,6 +302,40 @@ async function api(req, env, url) {
     }
     const { ca, min } = await tierInfo(env);
     return json({ ok: true, gated: !!ca, min, freeGrants: FREE_GRANTS, holderGrants: HOLDER_GRANTS });
+  }
+  if (p === '/api/v4' && m === 'GET') {
+    return json({ ok: true, address: await v4Addr(env), chainId: 4663, token: V4_TOKEN, explorer: 'https://robinhoodchain.blockscout.com' }, 200, CORS);
+  }
+  if (p === '/api/chain' && m === 'POST') {
+    const ip = req.headers.get('cf-connecting-ip') || 'anon';
+    if (!(await rateLimit(env, `chain:${ip}`, 240))) return err('Rate limit: 240 reads per minute', 429);
+    const b = await readBody(req, 6000);
+    if (!V4_READ.has(b.method) || !Array.isArray(b.params)) return err('Read-only methods only');
+    try { const r = await rpcRaw(env, b.method, b.params); return json({ ok: true, ...r }, 200, CORS); }
+    catch (e) { return err('Robinhood Chain did not answer. Try again.', 503); }
+  }
+  // Seller check for V4: did this transaction pay me from a DUSK vault?
+  if (p === '/api/v4/paid' && m === 'GET') {
+    const tx = (url.searchParams.get('tx') || '').trim().toLowerCase();
+    if (!/^0x[0-9a-f]{64}$/.test(tx)) return err('tx must be a transaction hash');
+    const va = await v4Addr(env);
+    if (!va) return err('The DUSK vault contract is not live yet', 404);
+    let rc; try { rc = (await rpcRaw(env, 'eth_getTransactionReceipt', [tx])).result; } catch { return err('Robinhood Chain did not answer. Try again.', 503); }
+    if (!rc) return json({ ok: true, found: false, status: 'pending or unknown' }, 200, CORS);
+    const topic = v4Topic('Paid(uint256,address,uint256,uint256,bytes32)');
+    const pays = (rc.logs || []).filter(l => (l.address || '').toLowerCase() === va && l.topics && l.topics[0] === topic).map(l => {
+      const d = l.data.slice(2);
+      return { vault: String(BigInt(l.topics[1])), seller: '0x' + l.topics[2].slice(26), amount: BigInt('0x' + d.slice(0, 64)).toString(), n: String(BigInt('0x' + d.slice(64, 128))), memo: '0x' + d.slice(128, 192) };
+    });
+    const sel = v4Topic('getVault(uint256)').slice(0, 10);
+    for (const x of pays) {
+      try {
+        const r = (await rpcRaw(env, 'eth_call', [{ to: va, data: sel + BigInt(x.vault).toString(16).padStart(64, '0') }, 'latest'])).result || '';
+        x.token = '0x' + r.slice(2 + 64 * 2 + 24, 2 + 64 * 3);
+        x.owner = '0x' + r.slice(2 + 24, 2 + 64);
+      } catch {}
+    }
+    return json({ ok: true, found: true, success: rc.status === '0x1', block: parseInt(rc.blockNumber, 16), contract: va, payments: pays }, 200, CORS);
   }
   if (p === '/api/agent01' && m === 'GET') return a1Public(env);
   if (p === '/api/ca' && m === 'GET') {
@@ -471,7 +550,46 @@ async function api(req, env, url) {
   if ((mm = p.match(/^\/api\/proof\/([A-Za-z0-9_-]{16,32})$/)) && m === 'GET') {
     const g = await getJSON(env, `g:${mm[1]}`);
     if (!g) return err('No grant with this id', 404);
-    return json({ ok: true, grant: publicGrant(g), message: grantMessage(g) }, 200, CORS);
+    let holder = false; try { const t = await tierOf(env, g.owner); holder = !!(t.gated && t.holder); } catch {}
+    return json({ ok: true, grant: publicGrant(g), message: grantMessage(g), holder }, 200, CORS);
+  }
+
+  // Seller check: is this agent bound by a live, signed DUSK grant?
+  if ((mm = p.match(/^\/api\/verify\/([A-Za-z0-9_-]{16,32})$/)) && m === 'GET') {
+    const ip = req.headers.get('cf-connecting-ip') || 'anon';
+    if (!(await rateLimit(env, `verify:${ip}`, 60))) return err('Rate limit: 60 checks per minute', 429);
+    const g = await getJSON(env, `g:${mm[1]}`);
+    if (!g) return err('No DUSK grant with this id', 404);
+    const now = Date.now();
+    let signature = false; try { signature = DUSK_ECC.recoverAddress(grantMessage(g), String(g.signature || '')) === g.owner; } catch {}
+    const active = g.status === 'active', notExpired = Date.parse(g.expires) > now;
+    let holder = false; try { const t = await tierOf(env, g.owner); holder = !!(t.gated && t.holder); } catch {}
+    const out = {
+      ok: true, verified: signature && active && notExpired,
+      grant: g.id, owner: g.owner, status: g.status, expires: g.expires, holder,
+      checks: { signature, active, notExpired },
+      limits: { budget: g.budget, perCall: g.perCall, daily: g.daily, approveAbove: g.approveAbove || null, sellerDaily: g.sellerDaily || null, allowlist: !!(g.allow && g.allow.length) },
+      proof: `${url.origin}/#proof/${g.id}`,
+    };
+    const qa = url.searchParams.get('amount');
+    if (qa !== null && qa !== '') {
+      const amt = toMicro(qa.trim());
+      if (!amt) return err('amount must be a positive USDC string, e.g. "0.05"');
+      const reason = coverError(g, amt, now);
+      const needsOwner = !reason && !!g.approveAbove && amt > toMicro(g.approveAbove);
+      out.amount = { value: fromMicro(amt), covers: !reason && !needsOwner, needsOwner, reason: reason || (needsOwner ? `Above ${g.approveAbove} USDC the owner approves first` : '') };
+    }
+    const qr = (url.searchParams.get('receipt') || '').trim();
+    if (qr) {
+      const [ns, hh] = qr.split('.'), n = parseInt(ns, 10);
+      let valid = false, e = null;
+      if (n >= 1 && n <= g.count && /^[0-9a-f]{64}$/.test(hh || '')) {
+        const page = await getJSON(env, `l:${g.id}:${Math.floor((n - 1) / PAGE)}`, []);
+        e = page.find(x => x.n === n); valid = !!(e && e.hash === hh);
+      }
+      out.receipt = valid ? { valid: true, n, amount: e.amount, t: e.t } : { valid: false };
+    }
+    return json(out, 200, CORS);
   }
 
   // Agent endpoints
@@ -492,6 +610,7 @@ async function api(req, env, url) {
       remainingToday: fromMicro(Math.max(0, daily - (g.day === dayKey(Date.now()) ? g.daySpentMicro : 0))),
       allowlist: (g.allow || []).length,
       approveAbove: g.approveAbove || null, sellerDaily: g.sellerDaily || null,
+      forecast: forecast(g),
     });
 
     if (p === '/api/agent' && m === 'GET') return json({ ok: true, ...view() }, 200, CORS);
@@ -644,7 +763,7 @@ async function a1Public(env) {
   const today = dayKey(Date.now());
   return json({
     ok: true, demo: true,
-    grant: g ? { id: g.id, owner: g.owner, status: g.status, budget: g.budget, perCall: g.perCall, daily: g.daily, approveAbove: g.approveAbove || null, sellerDaily: g.sellerDaily || null, expires: g.expires, spent: fromMicro(g.spentMicro), spentToday: fromMicro(g.day === today ? g.daySpentMicro : 0), count: g.count } : null,
+    grant: g ? { id: g.id, owner: g.owner, status: g.status, budget: g.budget, perCall: g.perCall, daily: g.daily, approveAbove: g.approveAbove || null, sellerDaily: g.sellerDaily || null, expires: g.expires, spent: fromMicro(g.spentMicro), spentToday: fromMicro(g.day === today ? g.daySpentMicro : 0), count: g.count, forecast: forecast(g) } : null,
     totals: log.totals, lastRun: log.lastRun, items: log.items.slice(0, 120),
   }, 200, CORS);
 }
