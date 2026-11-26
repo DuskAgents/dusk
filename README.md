@@ -92,6 +92,8 @@ The owner locks stablecoins (USDG by default, any ERC-20 works) in a vault and n
 
 The owner can `setPaused`, `setAgent` (rotate the agent wallet), `topUp`, `withdraw` and `close` (everything left goes back). There is no admin, no upgrade and no override: nobody but the owner can touch a vault.
 
+Plug it into Claude, Cursor or any MCP agent: set `DUSK_AGENT_WALLET_KEY` and `DUSK_VAULT_ID` for [`mcp/dusk-mcp.mjs`](mcp/dusk-mcp.mjs) and your AI gets `dusk_vault`, `dusk_vault_check` and `dusk_vault_pay`. In code, [`client/dusk-vault.mjs`](client/dusk-vault.mjs) does the same with no dependencies: `createVault({ key, vault }).pay(seller, '0.05')`.
+
 `canPay(vault, seller, amount)` tells an agent ahead of time: `0` pays now, `1` waits for the owner, `2+` refused. Sellers confirm a payment with `GET /api/v4/paid?tx=0x…`.
 
 ```bash
