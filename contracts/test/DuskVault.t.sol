@@ -225,4 +225,41 @@ contract DuskVaultTest {
         vault.open(owner, address(usd), 10 * U, 1 * U, 2 * U, 0, 0, block.timestamp + 1 days);
         vm.stopPrank();
     }
+
+    function testKillSwitch() public {
+        uint256 a = _open(0, 0);
+        uint256 b = _open(1 * U, 0);
+        vm.prank(agent);
+        uint256 rid = vault.pay(b, seller, 2 * U, bytes32("big"));
+        require(rid != 0, "waiting");
+        vm.prank(seller);
+        vault.freezeAll(true);
+        require(!vault.frozen(owner), "others cannot freeze me");
+        vm.prank(owner);
+        vault.freezeAll(true);
+        require(vault.frozen(owner), "frozen");
+        eq(vault.canPay(a, seller, 1 * U), 10, "canPay frozen a");
+        eq(vault.canPay(b, seller, 1 * U), 10, "canPay frozen b");
+        vm.prank(agent);
+        vm.expectRevert(DuskVault.OwnerFrozen.selector);
+        vault.pay(a, seller, 1 * U, bytes32(0));
+        vm.prank(agent);
+        vm.expectRevert(DuskVault.OwnerFrozen.selector);
+        vault.pay(b, seller, 2 * U, bytes32(0));
+        vm.prank(owner);
+        vm.expectRevert(DuskVault.OwnerFrozen.selector);
+        vault.approve(b, rid);
+        eq(usd.balanceOf(seller), 0, "nothing moved");
+        vm.prank(owner);
+        vault.withdraw(a, 10 * U);
+        eq(usd.balanceOf(owner), 810 * U, "withdraw works while frozen");
+        vm.prank(owner);
+        vault.freezeAll(false);
+        eq(vault.canPay(a, seller, 1 * U), 0, "canPay ok");
+        vm.prank(agent);
+        vault.pay(a, seller, 1 * U, bytes32(0));
+        vm.prank(owner);
+        vault.approve(b, rid);
+        eq(usd.balanceOf(seller), 3 * U, "paid after unfreeze");
+    }
 }
