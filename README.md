@@ -84,6 +84,45 @@ if r["ok"]:
 
 Same calls as the JS client: `limits()`, `check()`, `spend()`. See [`python/dusk_agent.py`](python/dusk_agent.py).
 
+## V4: on-chain vault
+
+Limits, enforced on-chain. [`contracts/src/DuskVault.sol`](contracts/src/DuskVault.sol) runs on Robinhood Chain.
+
+The owner locks stablecoins (USDG by default, any ERC-20 works) in a vault and names the agent's wallet. The agent calls `pay(vault, seller, amount, memo)` and the contract pays the seller in the same transaction, only inside the limits: per payment, per day, per seller per day, balance and expiry. Above the owner's ask-me amount, the payment waits for `approve` or `decline`. Everything else reverts.
+
+The owner can `setPaused`, `setAgent` (rotate the agent wallet), `topUp`, `withdraw` and `close` (everything left goes back). There is no admin, no upgrade and no override: nobody but the owner can touch a vault.
+
+`canPay(vault, seller, amount)` tells an agent ahead of time: `0` pays now, `1` waits for the owner, `2+` refused. Sellers confirm a payment with `GET /api/v4/paid?tx=0x…`.
+
+```bash
+cd contracts && forge test
+```
+
+## For sellers
+
+Your API serves AI agents. Before you serve one, ask DUSK if it runs on a live grant its owner signed.
+
+The agent sends `X-Dusk-Grant` (its grant id) and, once DUSK approved the payment, `X-Dusk-Receipt` (`n.hash` from its receipt). No key, no secret.
+
+```js
+import { duskVerify } from './seller/dusk-verify.mjs';
+
+const v = await duskVerify(request.headers, '0.05');
+if (!v.ok) return new Response(v.error, { status: 402 });
+```
+
+`GET /api/verify/:grant?amount=0.05&receipt=n.hash` returns `verified` (signature recovers, active, not expired), `amount.covers` (your price fits its limits right now), `receipt.valid` (the payment is in the signed ledger) and `holder` ($DUSK holder). Open to anyone, 60 calls a minute.
+
+Show it on your site:
+
+```html
+<a href="https://duskdot.fun/#sellers"><img src="https://duskdot.fun/badge.svg" alt="Accepts DUSK agents" width="232" height="48"></a>
+```
+
+## Budget forecast
+
+`GET /api/agent` and the vault return `forecast`: the pace in USDC a day, how many days the budget lasts at that pace, and `low` when less than 20% is left. The vault warns you before an agent runs dry.
+
 ## API
 
 | Method | Route | Auth | |
@@ -94,6 +133,10 @@ Same calls as the JS client: `limits()`, `check()`, `spend()`. See [`python/dusk
 | GET | `/api/ca` | none | $DUSK contract address |
 | GET | `/api/agent01` | none | Agent 01, the public demo agent: its grant and every decision |
 | GET | `/api/proof/:id` | none | signed terms, status, ledger head, anchors |
+| GET | `/api/v4` | none | vault contract address and default token |
+| GET | `/api/v4/paid?tx=` | none | payments a transaction made from a DUSK vault |
+| POST | `/api/chain` | none | read-only Robinhood Chain calls for the page |
+| GET | `/api/verify/:id` | none | seller check: `?amount=` and `?receipt=n.hash`, returns verified, covers, receipt valid |
 | POST | `/api/login` | wallet signature | session |
 | GET | `/api/vault` | session | your grants and tier |
 | POST | `/api/grants` | session + grant signature | create a grant |
@@ -168,6 +211,8 @@ src/index.src.html   the site
 client/              drop-in agent client
 mcp/                 MCP server for agents
 python/              Python client
+seller/              seller check for APIs that serve agents
+contracts/           V4 vault contract and tests (Foundry)
 worker.js, public/   built output
 ```
 
